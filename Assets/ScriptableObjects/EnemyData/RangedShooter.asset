@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db172ba99c5e38c449862dd551b320cc, type: 3}
+  m_Name: RangedShooter
+  m_EditorClassIdentifier: 
+  enemyName: Ranged Shooter
+  enemyType: 1
+  maxHealth: 30
+  attackDamage: 15
+  moveSpeed: 0
+  detectionRange: 8
+  attackRange: 6
+  attackCooldown: 1.5
+  patrolDistance: 3
+  patrolWaitTime: 1
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 8
+  fireRate: 2
+  dropItem: {fileID: 0}
+  dropChance: 0.3
+  hurtSFX: EnemyHurt
+  deathSFX: EnemyDeath
+  attackSFX: EnemyAttack

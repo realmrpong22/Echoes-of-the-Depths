@@ -1,8 +1,10 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
+[RequireComponent(typeof(CapsuleCollider2D))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement")]
@@ -47,8 +49,14 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private Animator anim;
     private SpriteRenderer spriteRenderer;
+    private PlayerInput playerInput;
 
-    private float horizontalInput;
+    private InputAction moveAction;
+    private InputAction jumpAction;
+    private InputAction dashAction;
+    private InputAction attackAction;
+
+    private Vector2 moveInput;
     private bool isFacingRight = true;
     private bool isGrounded;
     private bool isTouchingWall;
@@ -58,15 +66,26 @@ public class PlayerController : MonoBehaviour
     private bool canDash = true;
     private bool isInvincible;
     private float wallJumpTimer;
+    private bool jumpPressed;
+    private bool jumpHeld;
 
     private int currentHealth;
 
-    void Start()
+    void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        playerInput = GetComponent<PlayerInput>();
 
+        moveAction = playerInput.actions["Move"];
+        jumpAction = playerInput.actions["Jump"];
+        dashAction = playerInput.actions["Dash"];
+        attackAction = playerInput.actions["Attack"];
+    }
+
+    void Start()
+    {
         currentHealth = maxHealth;
 
         if (GameManager.Instance != null)
@@ -75,7 +94,23 @@ public class PlayerController : MonoBehaviour
             GameManager.Instance.maxHealth = maxHealth;
         }
 
-        Debug.Log("Player initialized");
+        Debug.Log("Player initialized with New Input System");
+    }
+
+    void OnEnable()
+    {
+        jumpAction.performed += OnJumpPerformed;
+        jumpAction.canceled += OnJumpCanceled;
+        dashAction.performed += OnDashPerformed;
+        attackAction.performed += OnAttackPerformed;
+    }
+
+    void OnDisable()
+    {
+        jumpAction.performed -= OnJumpPerformed;
+        jumpAction.canceled -= OnJumpCanceled;
+        dashAction.performed -= OnDashPerformed;
+        attackAction.performed -= OnAttackPerformed;
     }
 
     void Update()
@@ -83,28 +118,10 @@ public class PlayerController : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.isPaused)
             return;
 
-        horizontalInput = Input.GetAxisRaw("Horizontal"); // -1, 0, or 1
+        moveInput = moveAction.ReadValue<Vector2>();
 
         CheckGround();
         CheckWall();
-
-        if (Input.GetButtonDown("Jump"))
-        {
-            HandleJump();
-        }
-
-        if (Input.GetKeyDown(KeyCode.LeftShift) && GameManager.Instance.HasAbility("Dash"))
-        {
-            if (canDash && !isDashing)
-            {
-                StartCoroutine(Dash());
-            }
-        }
-
-        if (Input.GetKeyDown(KeyCode.Mouse0))
-        {
-            Attack();
-        }
 
         HandleWallSlide();
 
@@ -129,20 +146,45 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    void OnJumpPerformed(InputAction.CallbackContext context)
+    {
+        jumpPressed = true;
+        jumpHeld = true;
+        HandleJump();
+    }
+
+    void OnJumpCanceled(InputAction.CallbackContext context)
+    {
+        jumpHeld = false;
+    }
+
+    void OnDashPerformed(InputAction.CallbackContext context)
+    {
+        if (GameManager.Instance.HasAbility("Dash") && canDash && !isDashing)
+        {
+            StartCoroutine(Dash());
+        }
+    }
+
+    void OnAttackPerformed(InputAction.CallbackContext context)
+    {
+        Attack();
+    }
+
     void Move()
     {
-        float targetSpeed = horizontalInput * moveSpeed;
+        float targetSpeed = moveInput.x * moveSpeed;
         float speedDif = targetSpeed - rb.velocity.x;
         float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? acceleration : deceleration;
         float movement = speedDif * accelRate;
 
         rb.AddForce(movement * Vector2.right, ForceMode2D.Force);
 
-        if (horizontalInput > 0 && !isFacingRight)
+        if (moveInput.x > 0 && !isFacingRight)
         {
             Flip();
         }
-        else if (horizontalInput < 0 && isFacingRight)
+        else if (moveInput.x < 0 && isFacingRight)
         {
             Flip();
         }
@@ -154,7 +196,7 @@ public class PlayerController : MonoBehaviour
         {
             rb.velocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.fixedDeltaTime;
         }
-        else if (rb.velocity.y > 0 && !Input.GetButton("Jump"))
+        else if (rb.velocity.y > 0 && !jumpHeld)
         {
             rb.velocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * Time.fixedDeltaTime;
         }
@@ -260,16 +302,16 @@ public class PlayerController : MonoBehaviour
 
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
 
-        /*foreach (Collider2D enemy in hitEnemies)
+        foreach (Collider2D enemy in hitEnemies)
         {
             Debug.Log($"Hit enemy: {enemy.name}");
 
-            var enemyController = enemy.GetComponent<EnemyController>();
+            /*var enemyController = enemy.GetComponent<EnemyController>();
             if (enemyController != null)
             {
                 enemyController.TakeDamage(attackDamage);
-            }
-        }*/
+            }*/
+        }
     }
 
     public void TakeDamage(int damage)
