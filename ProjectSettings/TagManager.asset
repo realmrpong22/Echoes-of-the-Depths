@@ -46,3 +46,24 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Background
+    uniqueID: 3932799327
+    locked: 0
+  - name: Tiles
+    uniqueID: 3732173551
+    locked: 0
+  - name: Props
+    uniqueID: 4027881387
+    locked: 0
+  - name: Enemies
+    uniqueID: 3167557403
+    locked: 0
+  - name: Player
+    uniqueID: 4290540613
+    locked: 0
+  - name: VFX
+    uniqueID: 1681207881
+    locked: 0
+  - name: UI
+    uniqueID: 4223896483
+    locked: 0
