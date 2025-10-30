@@ -37,36 +37,34 @@ namespace Game.AI
                 BuildDeathSequence(enemy),
 
                 new Selector(
+
                     new Sequence(
                         new ConditionNode(() => IsPlayerDetected(enemy, data)),
 
                         new Selector(
+
                             new Sequence(
                                 new ConditionNode(() => IsInAttackRange(enemy, data)),
                                 new ConditionNode(() => CanAttack(enemy)),
                                 new ActionNode(() =>
                                 {
-                                    if (enemy != null)
-                                    {
-                                        enemy.AimAndShoot(data.aimDelay);
-                                        return Node.Status.Success;
-                                    }
-                                    return Node.Status.Failure;
+                                    enemy.Stop();
+                                    enemy.FacePlayer();
+                                    enemy.AimAndShoot(data.aimDelay);
+                                    return Node.Status.Success;
                                 })
                             ),
 
-                            new ActionNode(() =>
-                            {
-                                enemy.FacePlayer();
-                                return Node.Status.Running;
-                            })
+                            new ActionNode(() => MoveToPlayer(enemy, data))
                         )
                     ),
 
-                    new ActionNode(() => Idle(enemy))
+                    new ActionNode(() => Patrol(enemy, data))
                 )
             );
         }
+
+
 
         public static Node BuildGuardianTree(EnemyBT enemy, EnemyData data)
         {
@@ -236,20 +234,37 @@ namespace Game.AI
             return Node.Status.Success;
         }
 
-        static Node.Status ShootProjectile(EnemyBT enemy, EnemyData data)
+        static Node.Status MoveToPlayer(EnemyBT enemy, EnemyData data)
         {
-            enemy.Stop();
-            enemy.FacePlayer();
+            var bb = GetBlackboard(enemy);
+            Transform player = bb.GetValue<Transform>(BlackboardKeys.Player);
+            if (player == null) return Node.Status.Failure;
 
-            if (!CanAttack(enemy))
+            float distance = bb.GetValue<float>(BlackboardKeys.PlayerDistance);
+
+            if (distance <= data.attackRange)
             {
+                enemy.Stop();
+                return Node.Status.Success;
+            }
+
+            float dir = player.position.x > enemy.transform.position.x ? 1f : -1f;
+
+            if (!enemy.IsGroundAhead())
+            {
+                enemy.Stop();
+                if (Mathf.Abs(distance) > data.attackRange)
+                    enemy.FacePlayer();
                 return Node.Status.Running;
             }
 
-            enemy.ShootProjectile();
+            enemy.Move(dir);
+            enemy.FacePlayer();
 
-            return Node.Status.Success;
+            return Node.Status.Running;
         }
+
+
 
         #endregion
 
@@ -329,7 +344,6 @@ namespace Game.AI
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             return field?.GetValue(enemy) as Blackboard;
         }
-
         #endregion
     }
 }

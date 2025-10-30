@@ -18,10 +18,16 @@ public class Projectile : MonoBehaviour
         {
             Debug.Log($"Projectile collided with: {other.name}");
             // Deal damage to player
-            var target = other.GetComponent<IDamageable>();
-            if (target != null)
+            var target = other.GetComponentInParent<Game.Player.IDamageable>();
+            if (target == null)
+            {
+                Debug.Log("No IDamageable found in parent chain.");
+            }
+            else
+            {
+                Debug.Log($"Found IDamageable on: {target}");
                 target.TakeDamage(damage);
-
+            }
             Destroy(gameObject);
         }
         else if (!other.isTrigger)

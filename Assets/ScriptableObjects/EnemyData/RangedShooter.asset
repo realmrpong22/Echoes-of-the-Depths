@@ -16,17 +16,22 @@ MonoBehaviour:
   enemyType: 1
   maxHealth: 30
   attackDamage: 15
-  moveSpeed: 0
-  detectionRange: 8
+  moveSpeed: 2
+  detectionRange: 10
   attackRange: 6
   attackCooldown: 1.5
+  viewAngle: 90
   patrolDistance: 3
   patrolWaitTime: 1
   projectilePrefab: {fileID: 4014814073479433797, guid: 50a5adabb6c39544bb79088581f8289a, type: 3}
   projectileSpeed: 8
   fireRate: 2
+  aimDelay: 0.4
   dropItem: {fileID: 0}
   dropChance: 0.3
   hurtSFX: EnemyHurt
   deathSFX: EnemyDeath
   attackSFX: EnemyAttack
+  optimalRange: 6
+  retreatRange: 2.5
+  engageRange: 8

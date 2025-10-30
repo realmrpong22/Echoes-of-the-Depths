@@ -20,6 +20,7 @@ namespace Game.Player
 
         public void TakeDamage(int dmg)
         {
+            Debug.Log($"TakeDamage called — currentHealth: {currentHealth}");
             if (invincible) return;
 
             currentHealth -= dmg;
@@ -29,16 +30,24 @@ namespace Game.Player
                 return;
             }
 
+            Debug.Log($"Player took {dmg} damage!");
+
             StartCoroutine(Invincibility());
             pc.anim.SetTrigger("Hurt");
             AudioManager.Instance?.PlaySFX("PlayerHurt");
-            UIManager.Instance?.UpdateHealthBar();
+            UIManager.Instance?.UpdateHealthBar(currentHealth, maxHealth);
         }
 
         private System.Collections.IEnumerator Invincibility()
         {
             invincible = true;
-            yield return new WaitForSeconds(1f);
+            for (int i = 0; i < 5; i++)
+            {
+                pc.sprite.enabled = false;
+                yield return new WaitForSeconds(0.1f);
+                pc.sprite.enabled = true;
+                yield return new WaitForSeconds(0.1f);
+            }
             invincible = false;
         }
 

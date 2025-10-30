@@ -302,8 +302,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f400982b976f61c409a17fd3003f9071, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  allAbilities: []
-  unlockedAbilities: []
+  abilities: []
 --- !u!1 &272148640
 GameObject:
   m_ObjectHideFlags: 0
@@ -975,20 +974,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 209090ceab7570b4abd2f26b4b69b1c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  healthBar: {fileID: 1029117541}
-  energyBar: {fileID: 0}
-  healthText: {fileID: 0}
-  abilityIcons: []
-  abilityCooldownOverlays: []
-  pauseMenuPanel: {fileID: 423164168}
-  resumeButton: {fileID: 1282671585}
-  quitButton: {fileID: 740090873}
-  fadeGroup: {fileID: 1840879706}
-  fadeImage: {fileID: 0}
-  damageVignetteImage: {fileID: 0}
-  bossHealthBarPanel: {fileID: 0}
-  bossHealthBar: {fileID: 0}
-  bossNameText: {fileID: 0}
+  healthFill: {fileID: 1029117541}
+  energyFill: {fileID: 0}
+  damageOverlay: {fileID: 0}
+  fadeCanvas: {fileID: 0}
+  pauseMenu: {fileID: 423164168}
+  messageText: {fileID: 0}
+  fadeDuration: 1
+  damageFlashDuration: 0.2
 --- !u!4 &1491781860
 Transform:
   m_ObjectHideFlags: 0
@@ -1169,16 +1162,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e44d12c3d874584b811de9bce9ad68c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isPaused: 0
-  unlockedAbilities: []
-  respawnPoint: {fileID: 0}
-  lastCheckpointPosition: {x: 0, y: 0, z: 0}
-  currentHealth: 100
   maxHealth: 100
-  currentEnergy: 100
+  currentHealth: 100
   maxEnergy: 100
-  currentRegion: Region_01
-  currentRegionIndex: 0
+  currentEnergy: 100
+  audioManager: {fileID: 1785369708}
+  uiManager: {fileID: 1491781859}
+  abilityManager: {fileID: 231605282}
 --- !u!4 &1730391038
 Transform:
   m_ObjectHideFlags: 0
@@ -1238,15 +1228,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b839f3dfb188a8b4686f5d90e51e8a24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bgmSource: {fileID: 0}
-  sfxSource: {fileID: 0}
-  bgmVolume: 0.7
-  sfxVolume: 1
-  audioClips:
-  - clipName: RegionMusic
-    clip: {fileID: 8300000, guid: eeee6e01e8dbe914ca3f5eab71083fd1, type: 3}
-  - clipName: PlayerJump
-    clip: {fileID: 8300000, guid: 1a919d4b09e70ec42bd6ef3a4bf47d13, type: 3}
+  masterMixer: {fileID: 0}
+  musicVolumeParam: MusicVolume
+  sfxVolumeParam: SFXVolume
+  musicSource: {fileID: 0}
+  sfxSourcePrefab: {fileID: 0}
+  currentMusic: {fileID: 0}
 --- !u!1 &1840879704
 GameObject:
   m_ObjectHideFlags: 0

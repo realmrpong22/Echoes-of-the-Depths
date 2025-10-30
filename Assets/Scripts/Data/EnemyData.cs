@@ -73,6 +73,10 @@ namespace Game.AI
 
         [Tooltip("Sound when attacking")]
         public string attackSFX = "EnemyAttack";
+
+        public float optimalRange = 6f;
+        public float retreatRange = 2.5f;
+        public float engageRange = 8f;
     }
 
     public enum EnemyType

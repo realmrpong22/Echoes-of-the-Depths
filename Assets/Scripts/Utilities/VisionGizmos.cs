@@ -15,31 +15,52 @@ namespace Game.AI
         {
             if (data == null) return;
 
-            // Center and forward direction
             Vector3 origin = transform.position;
             Vector3 facingDir = transform.right * (transform.localScale.x > 0 ? 1f : -1f);
-            float range = data.detectionRange;
             float halfAngle = data.viewAngle / 2f;
 
 #if UNITY_EDITOR
-            // Draw filled red cone
-            Handles.color = new Color(1f, 0f, 0f, 0.25f); // semi-transparent red
+            // --- DETECTION RANGE (YELLOW) ---
+            Handles.color = new Color(1f, 1f, 0f, 0.15f); // semi-transparent yellow fill
             Handles.DrawSolidArc(
                 origin,
-                Vector3.forward,               // axis (since this is 2D)
-                Quaternion.Euler(0, 0, -halfAngle) * facingDir, // start direction
-                data.viewAngle,                // sweep angle
-                range                          // radius
+                Vector3.forward,
+                Quaternion.Euler(0, 0, -halfAngle) * facingDir,
+                data.viewAngle,
+                data.detectionRange
             );
 
-            // Draw outline for clarity
-            Handles.color = Color.red;
-            Handles.DrawWireArc(origin, Vector3.forward,
+            Handles.color = Color.yellow;
+            Handles.DrawWireArc(
+                origin,
+                Vector3.forward,
                 Quaternion.Euler(0, 0, -halfAngle) * facingDir,
-                data.viewAngle, range);
+                data.viewAngle,
+                data.detectionRange
+            );
 
-            // Draw center line for direction
-            Handles.DrawLine(origin, origin + facingDir * range);
+            // --- ATTACK RANGE (RED) ---
+            Handles.color = new Color(1f, 0f, 0f, 0.5f); // semi-transparent red fill
+            Handles.DrawSolidArc(
+                origin,
+                Vector3.forward,
+                Quaternion.Euler(0, 0, -halfAngle) * facingDir,
+                data.viewAngle,
+                data.attackRange
+            );
+
+            Handles.color = Color.red;
+            Handles.DrawWireArc(
+                origin,
+                Vector3.forward,
+                Quaternion.Euler(0, 0, -halfAngle) * facingDir,
+                data.viewAngle,
+                data.attackRange
+            );
+
+            // Direction line
+            Handles.color = Color.white;
+            Handles.DrawLine(origin, origin + facingDir * data.detectionRange);
 #endif
         }
     }

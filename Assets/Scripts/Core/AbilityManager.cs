@@ -1,251 +1,169 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Core
 {
+    [DefaultExecutionOrder(-70)]
     public class AbilityManager : MonoBehaviour
     {
         public static AbilityManager Instance { get; private set; }
 
-        [Header("Ability Database")]
-        [Tooltip("All abilities in the game - drag AbilityData assets here")]
-        public List<AbilityData> allAbilities = new List<AbilityData>();
+        [Header("Ability Settings")]
+        [Tooltip("Cooldown times per ability (seconds)")]
+        public List<AbilityData> abilities = new List<AbilityData>();
 
-        [Header("Runtime State")]
-        [Tooltip("Currently unlocked abilities (updated at runtime)")]
-        public List<AbilityData> unlockedAbilities = new List<AbilityData>();
-
-        // Dictionary for fast ability lookup by name
-        private Dictionary<string, AbilityData> abilityDictionary = new Dictionary<string, AbilityData>();
-
-        // Cooldown tracking
-        private Dictionary<string, float> abilityCooldowns = new Dictionary<string, float>();
+        private Dictionary<string, AbilityData> abilityLookup = new();
+        private Dictionary<string, float> cooldownTimers = new();
 
         void Awake()
         {
-            // Singleton pattern
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
+            if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
 
-            InitializeAbilities();
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+
+            // Initialize lookup dictionary
+            foreach (var ability in abilities)
+            {
+                if (!abilityLookup.ContainsKey(ability.id))
+                    abilityLookup.Add(ability.id, ability);
+
+                if (!cooldownTimers.ContainsKey(ability.id))
+                    cooldownTimers.Add(ability.id, 0f);
+            }
         }
 
         void Update()
         {
-            // Update cooldowns
-            UpdateCooldowns();
-        }
-
-        void InitializeAbilities()
-        {
-            // Build dictionary from list
-            foreach (AbilityData ability in allAbilities)
+            // Reduce cooldown timers over time
+            var keys = new List<string>(cooldownTimers.Keys);
+            foreach (var key in keys)
             {
-                if (!abilityDictionary.ContainsKey(ability.abilityName))
-                {
-                    abilityDictionary.Add(ability.abilityName, ability);
-                    abilityCooldowns.Add(ability.abilityName, 0f);
-                }
-            }
-
-            // Unlock starting abilities
-            foreach (AbilityData ability in allAbilities)
-            {
-                if (ability.unlockedAtStart)
-                {
-                    UnlockAbility(ability.abilityName, false);
-                }
-            }
-
-            Debug.Log($"AbilityManager initialized with {allAbilities.Count} abilities");
-        }
-
-        void UpdateCooldowns()
-        {
-            List<string> keys = new List<string>(abilityCooldowns.Keys);
-            foreach (string abilityName in keys)
-            {
-                if (abilityCooldowns[abilityName] > 0f)
-                {
-                    abilityCooldowns[abilityName] -= Time.deltaTime;
-
-                    // Update UI cooldown display
-                    if (UIManager.Instance != null)
-                    {
-                        AbilityData ability = GetAbilityData(abilityName);
-                        if (ability != null && ability.cooldown > 0f)
-                        {
-                            int index = unlockedAbilities.IndexOf(ability);
-                            if (index >= 0)
-                            {
-                                float percent = abilityCooldowns[abilityName] / ability.cooldown;
-                                UIManager.Instance.UpdateAbilityCooldown(index, percent);
-                            }
-                        }
-                    }
-                }
+                if (cooldownTimers[key] > 0)
+                    cooldownTimers[key] -= Time.deltaTime;
             }
         }
 
-        public void UnlockAbility(string abilityName, bool showMessage = true)
+        #region Public Methods
+
+        /// <summary>
+        /// Try to activate an ability if unlocked and off cooldown.
+        /// Returns true if successful.
+        /// </summary>
+        public bool TryUseAbility(string id)
         {
-            AbilityData ability = GetAbilityData(abilityName);
-
-            if (ability == null)
+            if (!abilityLookup.ContainsKey(id))
             {
-                Debug.LogWarning($"Ability not found: {abilityName}");
-                return;
+                Debug.LogWarning($"Ability '{id}' not found!");
+                return false;
             }
 
-            if (IsAbilityUnlocked(abilityName))
+            var ability = abilityLookup[id];
+            if (!ability.unlocked)
             {
-                Debug.Log($"Ability already unlocked: {abilityName}");
-                return;
+                Debug.Log($"Ability '{id}' is locked.");
+                return false;
             }
 
-            // Add to unlocked list
-            unlockedAbilities.Add(ability);
-
-            // Also add to GameManager's list
-            if (GameManager.Instance != null)
+            if (cooldownTimers[id] > 0)
             {
-                GameManager.Instance.UnlockAbility(abilityName);
+                Debug.Log($"Ability '{id}' is on cooldown for {cooldownTimers[id]:F1}s.");
+                return false;
             }
 
-            // Show unlock message
-            if (showMessage)
+            if (GameManager.Instance.currentEnergy < ability.energyCost)
             {
-                UIManager.Instance?.ShowMessage($"{ability.unlockMessage}\n{ability.displayName}", 3f);
-                AudioManager.Instance?.PlaySFX("AbilityUnlock");
+                UIManager.Instance?.ShowMessage("Not enough energy!");
+                return false;
             }
 
-            Debug.Log($"Ability unlocked: {ability.displayName}");
-        }
+            // Deduct energy and trigger effect
+            GameManager.Instance.ChangeEnergy(-ability.energyCost);
+            cooldownTimers[id] = ability.cooldown;
 
-        public bool IsAbilityUnlocked(string abilityName)
-        {
-            return unlockedAbilities.Exists(a => a.abilityName == abilityName);
-        }
+            // Trigger the ability’s effect (if hooked)
+            ability.TriggerAbility();
 
-        public bool TryUseAbility(string abilityName)
-        {
-            AbilityData ability = GetAbilityData(abilityName);
-
-            if (ability == null) return false;
-            if (!IsAbilityUnlocked(abilityName)) return false;
-            if (!IsAbilityReady(abilityName)) return false;
-
-            // Check energy cost
-            if (GameManager.Instance != null)
-            {
-                if (GameManager.Instance.currentEnergy < ability.energyCost)
-                {
-                    Debug.Log($"Not enough energy for {abilityName}");
-                    return false;
-                }
-
-                // Consume energy
-                GameManager.Instance.currentEnergy -= ability.energyCost;
-                UIManager.Instance?.UpdateEnergyBar();
-            }
-
-            // Start cooldown
-            if (ability.cooldown > 0f)
-            {
-                abilityCooldowns[abilityName] = ability.cooldown;
-            }
-
-            // Play sound effect
-            if (!string.IsNullOrEmpty(ability.sfxName))
-            {
-                AudioManager.Instance?.PlaySFX(ability.sfxName);
-            }
+            // Visual feedback
+            UIManager.Instance?.ShowMessage($"{ability.displayName} used!");
+            AudioManager.Instance?.PlaySFX(ability.sfxName);
 
             return true;
         }
 
-        public bool IsAbilityReady(string abilityName)
+        public void UnlockAbility(string id)
         {
-            if (!abilityCooldowns.ContainsKey(abilityName)) return false;
-            return abilityCooldowns[abilityName] <= 0f;
+            if (!abilityLookup.ContainsKey(id)) return;
+
+            abilityLookup[id].unlocked = true;
+            UIManager.Instance?.ShowMessage($"{abilityLookup[id].displayName} unlocked!");
+            AudioManager.Instance?.PlaySFX("AbilityUnlock");
+
+            GameManager.Instance.SaveGame();
         }
 
-        public float GetAbilityCooldown(string abilityName)
+        public string[] GetUnlockedAbilities()
         {
-            if (abilityCooldowns.ContainsKey(abilityName))
+            List<string> unlocked = new();
+            foreach (var ability in abilityLookup.Values)
             {
-                return Mathf.Max(0f, abilityCooldowns[abilityName]);
+                if (ability.unlocked)
+                    unlocked.Add(ability.id);
             }
-            return 0f;
+            return unlocked.ToArray();
         }
 
-        public AbilityData GetAbilityData(string abilityName)
+        public void SetUnlockedAbilities(string[] unlockedIds)
         {
-            if (abilityDictionary.ContainsKey(abilityName))
+            foreach (var id in unlockedIds)
             {
-                return abilityDictionary[abilityName];
-            }
-            return null;
-        }
-
-        public List<AbilityData> GetAbilitiesByType(AbilityType type)
-        {
-            return unlockedAbilities.FindAll(a => a.type == type);
-        }
-
-        public void LockAbility(string abilityName)
-        {
-            AbilityData ability = unlockedAbilities.Find(a => a.abilityName == abilityName);
-            if (ability != null)
-            {
-                unlockedAbilities.Remove(ability);
-
-                if (GameManager.Instance != null)
-                {
-                    GameManager.Instance.unlockedAbilities.Remove(abilityName);
-                }
-
-                Debug.Log($"Ability locked: {abilityName}");
+                if (abilityLookup.ContainsKey(id))
+                    abilityLookup[id].unlocked = true;
             }
         }
 
-        public void ResetAllCooldowns()
-        {
-            List<string> keys = new List<string>(abilityCooldowns.Keys);
-            foreach (string key in keys)
-            {
-                abilityCooldowns[key] = 0f;
-            }
-        }
+        #endregion
+    }
 
-        [ContextMenu("Unlock All Abilities")]
-        public void UnlockAllAbilities()
-        {
-            foreach (AbilityData ability in allAbilities)
-            {
-                UnlockAbility(ability.abilityName, false);
-            }
-            Debug.Log("All abilities unlocked!");
-        }
+    [System.Serializable]
+    public class AbilityData
+    {
+        [Header("Base Info")]
+        public string id;
+        public string displayName;
+        public bool unlocked;
 
-        [ContextMenu("Lock All Abilities")]
-        public void LockAllAbilities()
+        [Header("Gameplay")]
+        public float cooldown = 1f;
+        public int energyCost = 10;
+
+        [Header("Visuals & Audio")]
+        public string sfxName = "AbilityUse";
+
+        [Header("Ability Reference")]
+        [Tooltip("Optional script or object to trigger when used.")]
+        public GameObject abilityObject;
+
+        public void TriggerAbility()
         {
-            unlockedAbilities.Clear();
-            if (GameManager.Instance != null)
+            if (abilityObject != null)
             {
-                GameManager.Instance.unlockedAbilities.Clear();
+                var activatable = abilityObject.GetComponent<IActivatableAbility>();
+                if (activatable != null)
+                    activatable.Activate();
             }
-            Debug.Log("All abilities locked!");
         }
+    }
+
+    /// <summary>
+    /// Optional interface for custom ability scripts.
+    /// </summary>
+    public interface IActivatableAbility
+    {
+        void Activate();
     }
 }

@@ -1,304 +1,177 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 namespace Game.Core
 {
+    [DefaultExecutionOrder(-80)]
     public class UIManager : MonoBehaviour
     {
         public static UIManager Instance { get; private set; }
 
-        [Header("Health & Energy")]
-        [Tooltip("Fill-type Image that displays player health")]
-        public Image healthBar;
+        [Header("UI References")]
+        [SerializeField] private Image healthFill;
+        [SerializeField] private Image energyFill;
+        [SerializeField] private Image damageOverlay;
+        [SerializeField] private CanvasGroup fadeCanvas;
+        [SerializeField] private GameObject pauseMenu;
+        [SerializeField] private TMP_Text messageText;
 
-        [Tooltip("Fill-type Image that displays player energy")]
-        public Image energyBar;
+        [Header("Settings")]
+        public float fadeDuration = 1f;
+        public float damageFlashDuration = 0.2f;
 
-        [Tooltip("Text showing current/max health (optional)")]
-        public TextMeshProUGUI healthText;
-
-        [Header("Ability Icons")]
-        [Tooltip("Array of ability icon Images in the UI")]
-        public Image[] abilityIcons;
-
-        [Tooltip("Overlay images to show cooldown (will fill up as cooldown ends)")]
-        public Image[] abilityCooldownOverlays;
-
-        [Header("Pause Menu")]
-        [Tooltip("Parent GameObject containing the pause menu")]
-        public GameObject pauseMenuPanel;
-
-        [Tooltip("Resume button in pause menu")]
-        public Button resumeButton;
-
-        [Tooltip("Quit button in pause menu")]
-        public Button quitButton;
-
-        [Header("Fade Transitions")]
-        [Tooltip("CanvasGroup for fading the entire screen to black")]
-        public CanvasGroup fadeGroup;
-
-        [Tooltip("Image used for fade effect (should be black)")]
-        public Image fadeImage;
-
-        [Header("Damage Feedback")]
-        [Tooltip("Red overlay that flashes when player takes damage")]
-        public Image damageVignetteImage;
-
-        [Header("Boss Health")]
-        [Tooltip("Boss health bar (shown only during boss fights)")]
-        public GameObject bossHealthBarPanel;
-
-        [Tooltip("Fill-type Image for boss health")]
-        public Image bossHealthBar;
-
-        [Tooltip("Boss name text")]
-        public TextMeshProUGUI bossNameText;
+        private bool isPaused;
 
         void Awake()
         {
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
+            if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
 
-            InitializeUI();
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+
+            if (fadeCanvas != null)
+                fadeCanvas.alpha = 0;
+
+            if (pauseMenu != null)
+                pauseMenu.SetActive(false);
+
+            if (damageOverlay != null)
+                damageOverlay.color = new Color(1, 0, 0, 0);
         }
 
-        void InitializeUI()
+        void Update()
         {
-            if (pauseMenuPanel != null)
+            if (Input.GetKeyDown(KeyCode.Escape))
             {
-                pauseMenuPanel.SetActive(false);
+                TogglePause();
             }
-
-            if (resumeButton != null)
-            {
-                resumeButton.onClick.AddListener(OnResumeClicked);
-            }
-
-            if (quitButton != null)
-            {
-                quitButton.onClick.AddListener(OnQuitClicked);
-            }
-
-            if (fadeGroup != null)
-            {
-                fadeGroup.alpha = 0f;
-            }
-
-            if (damageVignetteImage != null)
-            {
-                Color c = damageVignetteImage.color;
-                c.a = 0f;
-                damageVignetteImage.color = c;
-            }
-
-            if (bossHealthBarPanel != null)
-            {
-                bossHealthBarPanel.SetActive(false);
-            }
-
-            Debug.Log("UIManager initialized");
         }
 
-        public void UpdateHealthBar()
+        #region Health & Energy
+
+        public void UpdateHealthBar(int current, int max)
         {
-            if (healthBar != null && GameManager.Instance != null)
-            {
-                float healthPercent = (float)GameManager.Instance.currentHealth / GameManager.Instance.maxHealth;
-                healthBar.fillAmount = healthPercent;
-
-                if (healthText != null)
-                {
-                    healthText.text = $"{GameManager.Instance.currentHealth} / {GameManager.Instance.maxHealth}";
-                }
-            }
+            if (healthFill == null) return;
+            float fill = (float)current / max;
+            healthFill.fillAmount = fill;
         }
 
-        public void UpdateEnergyBar()
+        public void UpdateEnergyBar(int current, int max)
         {
-            if (energyBar != null && GameManager.Instance != null)
-            {
-                float energyPercent = (float)GameManager.Instance.currentEnergy / GameManager.Instance.maxEnergy;
-                energyBar.fillAmount = energyPercent;
-            }
+            if (energyFill == null) return;
+            float fill = (float)current / max;
+            energyFill.fillAmount = fill;
         }
+
+        #endregion
+
+        #region Damage Flash
 
         public void ShowDamageEffect()
         {
-            if (damageVignetteImage != null)
-            {
-                StartCoroutine(DamageFlashCoroutine());
-            }
+            if (damageOverlay == null) return;
+            StopAllCoroutines();
+            StartCoroutine(DamageFlashRoutine());
         }
 
-        private IEnumerator DamageFlashCoroutine()
+        private System.Collections.IEnumerator DamageFlashRoutine()
         {
-            Color c = damageVignetteImage.color;
-            c.a = 0.5f;
-            damageVignetteImage.color = c;
+            damageOverlay.color = new Color(1, 0, 0, 0.4f);
 
-            float elapsed = 0f;
-            float duration = 0.5f;
-
-            while (elapsed < duration)
+            float t = 0;
+            while (t < damageFlashDuration)
             {
-                elapsed += Time.deltaTime;
-                c.a = Mathf.Lerp(0.5f, 0f, elapsed / duration);
-                damageVignetteImage.color = c;
+                t += Time.deltaTime;
+                damageOverlay.color = new Color(1, 0, 0, Mathf.Lerp(0.4f, 0, t / damageFlashDuration));
                 yield return null;
             }
 
-            c.a = 0f;
-            damageVignetteImage.color = c;
+            damageOverlay.color = new Color(1, 0, 0, 0);
         }
 
-        public void UpdateAbilityIcons()
+        #endregion
+
+        #region Fade
+
+        public void FadeIn() => StartCoroutine(FadeRoutine(1, 0));
+        public void FadeOut() => StartCoroutine(FadeRoutine(0, 1));
+
+        private System.Collections.IEnumerator FadeRoutine(float from, float to)
         {
-            if (GameManager.Instance == null) return;
+            if (fadeCanvas == null) yield break;
 
-            List<string> unlockedAbilities = GameManager.Instance.unlockedAbilities;
+            fadeCanvas.blocksRaycasts = true;
+            float elapsed = 0;
 
-            for (int i = 0; i < abilityIcons.Length; i++)
-            {
-                if (abilityIcons[i] != null)
-                {
-                    if (i < unlockedAbilities.Count)
-                    {
-                        abilityIcons[i].enabled = true;
-                    }
-                    else
-                    {
-                        abilityIcons[i].enabled = false;
-                    }
-                }
-            }
-        }
-
-        public void UpdateAbilityCooldown(int abilityIndex, float cooldownPercent)
-        {
-            if (abilityIndex >= 0 && abilityIndex < abilityCooldownOverlays.Length)
-            {
-                if (abilityCooldownOverlays[abilityIndex] != null)
-                {
-                    abilityCooldownOverlays[abilityIndex].fillAmount = cooldownPercent;
-                }
-            }
-        }
-
-        public void ShowPauseMenu(bool show)
-        {
-            if (pauseMenuPanel != null)
-            {
-                pauseMenuPanel.SetActive(show);
-            }
-        }
-
-        void OnResumeClicked()
-        {
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.TogglePause();
-            }
-        }
-
-        void OnQuitClicked()
-        {
-            Debug.Log("Quit button clicked");
-            Application.Quit();
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#endif
-        }
-
-        public void FadeOut(float duration)
-        {
-            StartCoroutine(FadeCoroutine(0f, 1f, duration));
-        }
-
-        public void FadeIn(float duration)
-        {
-            StartCoroutine(FadeCoroutine(1f, 0f, duration));
-        }
-
-        public void SetFade(float alpha)
-        {
-            if (fadeGroup != null)
-            {
-                fadeGroup.alpha = alpha;
-            }
-        }
-
-        private IEnumerator FadeCoroutine(float startAlpha, float endAlpha, float duration)
-        {
-            if (fadeGroup == null) yield break;
-
-            float elapsed = 0f;
-            fadeGroup.alpha = startAlpha;
-
-            while (elapsed < duration)
+            while (elapsed < fadeDuration)
             {
                 elapsed += Time.deltaTime;
-                fadeGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, elapsed / duration);
+                fadeCanvas.alpha = Mathf.Lerp(from, to, elapsed / fadeDuration);
                 yield return null;
             }
 
-            fadeGroup.alpha = endAlpha;
+            fadeCanvas.alpha = to;
+            fadeCanvas.blocksRaycasts = to > 0;
         }
 
-        public void ShowBossHealthBar(string bossName)
+        #endregion
+
+        #region Pause Menu
+
+        public void TogglePause()
         {
-            if (bossHealthBarPanel != null)
-            {
-                bossHealthBarPanel.SetActive(true);
-            }
+            isPaused = !isPaused;
+            pauseMenu?.SetActive(isPaused);
 
-            if (bossNameText != null)
-            {
-                bossNameText.text = bossName;
-            }
-
-            if (bossHealthBar != null)
-            {
-                bossHealthBar.fillAmount = 1f;
-            }
+            Time.timeScale = isPaused ? 0 : 1;
+            AudioListener.pause = isPaused;
         }
 
-        public void UpdateBossHealthBar(float healthPercent)
+        public void ResumeGame()
         {
-            if (bossHealthBar != null)
-            {
-                bossHealthBar.fillAmount = healthPercent;
-            }
+            isPaused = false;
+            Time.timeScale = 1;
+            AudioListener.pause = false;
+            pauseMenu?.SetActive(false);
         }
 
-        public void HideBossHealthBar()
+        public void QuitToMainMenu()
         {
-            if (bossHealthBarPanel != null)
-            {
-                bossHealthBarPanel.SetActive(false);
-            }
+            ResumeGame();
+            SceneManager.LoadScene("MainMenu");
         }
 
-        public void ShowMessage(string message, float duration = 3f)
+        #endregion
+
+        #region Messages / Prompts
+
+        public void ShowMessage(string text, float duration = 2f)
         {
-            Debug.Log($"UI Message: {message}");
-            StartCoroutine(MessageCoroutine(message, duration));
+            if (messageText == null) return;
+            StopCoroutine(nameof(MessageRoutine));
+            StartCoroutine(MessageRoutine(text, duration));
         }
 
-        private IEnumerator MessageCoroutine(string message, float duration)
+        private System.Collections.IEnumerator MessageRoutine(string text, float duration)
         {
+            messageText.text = text;
+            messageText.gameObject.SetActive(true);
             yield return new WaitForSeconds(duration);
+            messageText.gameObject.SetActive(false);
         }
+
+        public void ShowDeathScreen()
+        {
+            FadeOut();
+            ShowMessage("You Died", 2f);
+        }
+
+        #endregion
     }
 }

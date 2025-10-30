@@ -1,245 +1,146 @@
-using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Game.Core
 {
+    [DefaultExecutionOrder(-100)]
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; }
 
-        [Header("Game State")]
-        public bool isPaused = false;
-
-        [Header("Player Progress")]
-        public List<string> unlockedAbilities = new List<string>();
-        public Dictionary<string, bool> bossesDefeated = new Dictionary<string, bool>();
-        public Dictionary<string, bool> puzzlesCompleted = new Dictionary<string, bool>();
-
-        [Header("Respawn")]
-        public Transform respawnPoint;
-        public Vector3 lastCheckpointPosition;
-
         [Header("Player Stats")]
-        public int currentHealth = 100;
-        public int maxHealth = 100;
-        public int currentEnergy = 100;
+        public int maxHealth = 5;
+        public int currentHealth;
         public int maxEnergy = 100;
+        public int currentEnergy;
 
-        [Header("Current Region")]
-        public string currentRegion = "Region_01";
-        public int currentRegionIndex = 0;
+        [Header("Save Data")]
+        private string saveFilePath;
+        private GameSaveData currentSave;
+
+        [Header("References")]
+        public AudioManager audioManager;
+        public UIManager uiManager;
+        public AbilityManager abilityManager;
+
+        private bool initialized;
 
         void Awake()
         {
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
+            // Singleton setup
+            if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
 
-            InitializeGame();
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+
+            saveFilePath = Path.Combine(Application.persistentDataPath, "save.json");
+
+            InitializeManagers();
+            LoadGame();
         }
 
-        void Update()
+        private void InitializeManagers()
         {
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (initialized) return;
+
+            // Find managers in current scene
+            audioManager = FindObjectOfType<AudioManager>();
+            uiManager = FindObjectOfType<UIManager>();
+            abilityManager = FindObjectOfType<AbilityManager>();
+
+            if (audioManager == null || uiManager == null || abilityManager == null)
             {
-                TogglePause();
-            }
-        }
-
-        void InitializeGame()
-        {
-            unlockedAbilities.Add("Dash");
-            unlockedAbilities.Add("DoubleJump");
-            unlockedAbilities.Add("WallJump");
-
-            bossesDefeated.Add("Boss1", false);
-            bossesDefeated.Add("Boss2", false);
-            bossesDefeated.Add("Boss3", false);
-
-            puzzlesCompleted.Add("Region_01_Puzzle", false);
-            puzzlesCompleted.Add("Region_02_Puzzle", false);
-            puzzlesCompleted.Add("Region_03_Puzzle", false);
-
-            Debug.Log("GameManager initialized successfully");
-        }
-
-        public void TogglePause()
-        {
-            isPaused = !isPaused;
-            Time.timeScale = isPaused ? 0f : 1f;
-
-            if (UIManager.Instance != null)
-            {
-                UIManager.Instance.ShowPauseMenu(isPaused);
+                Debug.LogWarning("One or more managers not found. Loading _Manager scene...");
+                SceneManager.LoadSceneAsync("_Manager", LoadSceneMode.Additive);
             }
 
-            Debug.Log(isPaused ? "Game Paused" : "Game Resumed");
+            initialized = true;
         }
 
-        public void UnlockAbility(string abilityName)
+        #region Player Stats
+
+        public void ChangeHealth(int amount)
         {
-            if (!unlockedAbilities.Contains(abilityName))
-            {
-                unlockedAbilities.Add(abilityName);
-                Debug.Log($"Ability unlocked: {abilityName}");
+            currentHealth = Mathf.Clamp(currentHealth + amount, 0, maxHealth);
+            uiManager?.UpdateHealthBar(currentHealth, maxHealth);
 
-                // Notify UI to update ability icons
-                if (UIManager.Instance != null)
-                {
-                    UIManager.Instance.UpdateAbilityIcons();
-                }
-
-                SaveGame();
-            }
+            if (currentHealth <= 0)
+                OnPlayerDeath();
         }
 
-        public bool HasAbility(string abilityName)
+        public void ChangeEnergy(int amount)
         {
-            return unlockedAbilities.Contains(abilityName);
+            currentEnergy = Mathf.Clamp(currentEnergy + amount, 0, maxEnergy);
+            //uiManager?.UpdateEnergyBar(currentEnergy, maxEnergy);
         }
 
-        public void DefeatBoss(string bossName)
+        private void OnPlayerDeath()
         {
-            if (bossesDefeated.ContainsKey(bossName))
-            {
-                bossesDefeated[bossName] = true;
-                Debug.Log($"Boss defeated: {bossName}");
-                SaveGame();
-            }
+            audioManager?.PlaySFX("PlayerDeath");
+            uiManager?.ShowDeathScreen();
         }
 
-        public bool IsBossDefeated(string bossName)
-        {
-            return bossesDefeated.ContainsKey(bossName) && bossesDefeated[bossName];
-        }
+        #endregion
 
-        public void CompletePuzzle(string puzzleName)
-        {
-            if (puzzlesCompleted.ContainsKey(puzzleName))
-            {
-                puzzlesCompleted[puzzleName] = true;
-                Debug.Log($"Puzzle completed: {puzzleName}");
-                SaveGame();
-            }
-        }
-
-        public bool IsPuzzleCompleted(string puzzleName)
-        {
-            return puzzlesCompleted.ContainsKey(puzzleName) && puzzlesCompleted[puzzleName];
-        }
-
-        public void SetCheckpoint(Transform checkpointTransform)
-        {
-            respawnPoint = checkpointTransform;
-            lastCheckpointPosition = checkpointTransform.position;
-
-            currentHealth = maxHealth;
-            currentEnergy = maxEnergy;
-
-            if (UIManager.Instance != null)
-            {
-                UIManager.Instance.UpdateHealthBar();
-                UIManager.Instance.UpdateEnergyBar();
-            }
-
-            Debug.Log($"Checkpoint set at: {lastCheckpointPosition}");
-            SaveGame();
-        }
-
-        public void RespawnPlayer()
-        {
-            // Find the player and move them to checkpoint
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null && respawnPoint != null)
-            {
-                player.transform.position = lastCheckpointPosition;
-
-                // Restore health and energy
-                currentHealth = maxHealth;
-                currentEnergy = maxEnergy;
-
-                // Update UI
-                if (UIManager.Instance != null)
-                {
-                    UIManager.Instance.UpdateHealthBar();
-                    UIManager.Instance.UpdateEnergyBar();
-                }
-
-                Debug.Log("Player respawned at checkpoint");
-            }
-        }
+        #region Save / Load
 
         public void SaveGame()
         {
-            SaveData data = new SaveData
+            currentSave = new GameSaveData
             {
-                playerPosition = lastCheckpointPosition,
-                currentHealth = currentHealth,
-                maxHealth = maxHealth,
-                currentEnergy = currentEnergy,
-                maxEnergy = maxEnergy,
-                unlockedAbilities = unlockedAbilities,
-                bossesDefeated = bossesDefeated,
-                puzzlesCompleted = puzzlesCompleted,
-                currentRegion = currentRegion
+                health = currentHealth,
+                energy = currentEnergy,
+                unlockedAbilities = abilityManager?.GetUnlockedAbilities()
             };
 
-            string json = JsonUtility.ToJson(data, true); // true = pretty print
-            System.IO.File.WriteAllText(Application.persistentDataPath + "/savegame.json", json);
-
-            Debug.Log("Game saved to: " + Application.persistentDataPath + "/savegame.json");
+            string json = JsonUtility.ToJson(currentSave, true);
+            File.WriteAllText(saveFilePath, json);
+            Debug.Log($"Game saved to {saveFilePath}");
         }
 
         public void LoadGame()
         {
-            string path = Application.persistentDataPath + "/savegame.json";
-
-            if (System.IO.File.Exists(path))
+            if (!File.Exists(saveFilePath))
             {
-                string json = System.IO.File.ReadAllText(path);
-                SaveData data = JsonUtility.FromJson<SaveData>(json);
-
-                // Restore all saved data
-                lastCheckpointPosition = data.playerPosition;
-                currentHealth = data.currentHealth;
-                maxHealth = data.maxHealth;
-                currentEnergy = data.currentEnergy;
-                maxEnergy = data.maxEnergy;
-                unlockedAbilities = data.unlockedAbilities;
-                bossesDefeated = data.bossesDefeated;
-                puzzlesCompleted = data.puzzlesCompleted;
-                currentRegion = data.currentRegion;
-
-                // Move player to saved position
-                RespawnPlayer();
-
-                Debug.Log("Game loaded successfully");
+                Debug.Log("No save file found. Starting new game.");
+                currentHealth = maxHealth;
+                currentEnergy = maxEnergy;
+                return;
             }
-            else
-            {
-                Debug.LogWarning("No save file found");
-            }
+
+            string json = File.ReadAllText(saveFilePath);
+            currentSave = JsonUtility.FromJson<GameSaveData>(json);
+
+            currentHealth = currentSave.health;
+            currentEnergy = currentSave.energy;
+            abilityManager?.SetUnlockedAbilities(currentSave.unlockedAbilities);
+
+            Debug.Log("Game loaded successfully.");
+        }
+
+        #endregion
+
+        public void RespawnPlayer()
+        {
+            Debug.Log("Respawn");
+        }
+
+        public void SetCheckpoint(Transform respawnPoint)
+        {
+            Debug.Log("Set checkpoint");
         }
     }
 
     [System.Serializable]
-    public class SaveData
+    public class GameSaveData
     {
-        public Vector3 playerPosition;
-        public int currentHealth;
-        public int maxHealth;
-        public int currentEnergy;
-        public int maxEnergy;
-        public List<string> unlockedAbilities;
-        public Dictionary<string, bool> bossesDefeated;
-        public Dictionary<string, bool> puzzlesCompleted;
-        public string currentRegion;
+        public int health;
+        public int energy;
+        public string[] unlockedAbilities;
     }
 }
