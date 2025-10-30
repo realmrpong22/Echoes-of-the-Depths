@@ -1,272 +1,335 @@
 ﻿using UnityEngine;
 using BehaviorTree;
+using Game.Core;
+using Game.Player;
 
-/// <summary>
-/// Factory class for building behavior trees for different enemy types.
-/// </summary>
-public static class EnemyTreeBuilder
+namespace Game.AI
 {
-    /// <summary>
-    /// Build behavior tree for Melee enemies (patrol, chase, melee attack).
-    /// 
-    /// Tree Structure:
-    /// ROOT (Selector)
-    /// ├─ Death Sequence (isDead? → Die)
-    /// └─ Alive Sequence
-    ///    ├─ Player Detected?
-    ///    │  └─ Combat Selector
-    ///    │     ├─ Attack Sequence (In Range? → Attack)
-    ///    │     └─ Chase
-    ///    └─ Patrol
-    /// </summary>
-    public static Node BuildMeleeTree(EnemyBT enemy, EnemyData data)
+    public static class EnemyTreeBuilder
     {
-        return new Selector(
-            // Death Check (highest priority)
-            BuildDeathSequence(enemy),
+        #region Public Builders
 
-            // Alive Behavior
-            new Selector(
-                // Combat (if player detected)
-                new Sequence(
-                    new ConditionNode(() => IsPlayerDetected(enemy, data)),
-                    new Selector(
-                        // Try to attack if in range
-                        new Sequence(
-                            new ConditionNode(() => IsInAttackRange(enemy, data)),
-                            new ActionNode(() => AttackMelee(enemy, data))
-                        ),
-                        // Otherwise chase
-                        new ActionNode(() => Chase(enemy, data))
-                    )
-                ),
+        public static Node BuildMeleeTree(EnemyBT enemy, EnemyData data)
+        {
+            return new Selector(
+                BuildDeathSequence(enemy),
 
-                // Patrol (fallback when no player)
-                new ActionNode(() => Patrol(enemy, data))
-            )
-        );
-    }
+                new Selector(
+                    new Sequence(
+                        new ConditionNode(() => IsPlayerDetected(enemy, data)),
+                        new Selector(
+                            new Sequence(
+                                new ConditionNode(() => IsInAttackRange(enemy, data)),
+                                new ActionNode(() => AttackMelee(enemy, data))
+                            ),
+                            new ActionNode(() => Chase(enemy, data))
+                        )
+                    ),
 
-    /// <summary>
-    /// Build behavior tree for Ranged enemies (stationary, shoot at player).
-    /// 
-    /// Tree Structure:
-    /// ROOT (Selector)
-    /// ├─ Death Sequence
-    /// └─ Alive Sequence
-    ///    ├─ Player Detected?
-    ///    │  └─ Attack Sequence (In Range? → Shoot)
-    ///    └─ Idle
-    /// </summary>
-    public static Node BuildRangedTree(EnemyBT enemy, EnemyData data)
-    {
-        return new Selector(
-            BuildDeathSequence(enemy),
+                    new ActionNode(() => Patrol(enemy, data))
+                )
+            );
+        }
 
-            new Selector(
-                // Combat
-                new Sequence(
-                    new ConditionNode(() => IsPlayerDetected(enemy, data)),
-                    new ConditionNode(() => IsInAttackRange(enemy, data)),
-                    new ActionNode(() => ShootProjectile(enemy, data))
-                ),
+        public static Node BuildRangedTree(EnemyBT enemy, EnemyData data)
+        {
+            return new Selector(
+                BuildDeathSequence(enemy),
 
-                // Idle
-                new ActionNode(() => Idle(enemy))
-            )
-        );
-    }
+                new Selector(
+                    new Sequence(
+                        new ConditionNode(() => IsPlayerDetected(enemy, data)),
 
-    /// <summary>
-    /// Build behavior tree for Guardian enemies (similar to melee but more aggressive).
-    /// TODO: Add jump/ranged stagger mechanics later
-    /// </summary>
-    public static Node BuildGuardianTree(EnemyBT enemy, EnemyData data)
-    {
-        // For now, use melee tree
-        // Later can add special guardian behaviors
-        return BuildMeleeTree(enemy, data);
-    }
+                        new Selector(
+                            new Sequence(
+                                new ConditionNode(() => IsInAttackRange(enemy, data)),
+                                new ConditionNode(() => CanAttack(enemy)),
+                                new ActionNode(() =>
+                                {
+                                    if (enemy != null)
+                                    {
+                                        enemy.AimAndShoot(data.aimDelay);
+                                        return Node.Status.Success;
+                                    }
+                                    return Node.Status.Failure;
+                                })
+                            ),
 
-    /// <summary>
-    /// Build behavior tree for Air enemies (flying patrol and swoop attacks).
-    /// TODO: Implement flying movement patterns
-    /// </summary>
-    public static Node BuildAirTree(EnemyBT enemy, EnemyData data)
-    {
-        // Placeholder - similar to ranged for now
-        return BuildRangedTree(enemy, data);
-    }
+                            new ActionNode(() =>
+                            {
+                                enemy.FacePlayer();
+                                return Node.Status.Running;
+                            })
+                        )
+                    ),
 
-    #region Death Sequence
+                    new ActionNode(() => Idle(enemy))
+                )
+            );
+        }
 
-    static Node BuildDeathSequence(EnemyBT enemy)
-    {
-        return new Sequence(
-            new ConditionNode(() => IsDead(enemy)),
-            new ActionNode(() => ExecuteDeath(enemy))
-        );
-    }
+        public static Node BuildGuardianTree(EnemyBT enemy, EnemyData data)
+        {
+            return BuildMeleeTree(enemy, data);
+        }
 
-    static bool IsDead(EnemyBT enemy)
-    {
-        return enemy.GetComponent<EnemyBT>()
-            .GetType()
-            .GetField("blackboard", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            .GetValue(enemy) is Blackboard bb && bb.GetValue<bool>(BlackboardKeys.IsDead);
-    }
+        public static Node BuildAirTree(EnemyBT enemy, EnemyData data)
+        {
+            return new Selector(
+                BuildDeathSequence(enemy),
 
-    static Node.Status ExecuteDeath(EnemyBT enemy)
-    {
-        enemy.Die();
-        return Node.Status.Success;
-    }
+                new Selector(
+                    new Sequence(
+                        new ConditionNode(() => IsPlayerDetected(enemy, data)),
 
-    #endregion
+                        new Selector(
+                            new Sequence(
+                                new ConditionNode(() => IsInAttackRange(enemy, data)),
+                                new ActionNode(() =>
+                                {
+                                    SwoopAttack(enemy, data);
+                                    return Node.Status.Success;
+                                })
+                            ),
 
-    #region Conditions
+                            new ActionNode(() => FlyChase(enemy, data))
+                        )
+                    ),
 
-    static bool IsPlayerDetected(EnemyBT enemy, EnemyData data)
-    {
-        var bb = GetBlackboard(enemy);
-        float distance = bb.GetValue<float>(BlackboardKeys.PlayerDistance, float.MaxValue);
-        return distance <= data.detectionRange;
-    }
+                    new ActionNode(() => FlyPatrol(enemy, data))
+                )
+            );
+        }
 
-    static bool IsInAttackRange(EnemyBT enemy, EnemyData data)
-    {
-        var bb = GetBlackboard(enemy);
-        float distance = bb.GetValue<float>(BlackboardKeys.PlayerDistance, float.MaxValue);
-        return distance <= data.attackRange;
-    }
+        #endregion
 
-    static bool CanAttack(EnemyBT enemy)
-    {
-        var bb = GetBlackboard(enemy);
-        float attackTimer = bb.GetValue<float>(BlackboardKeys.AttackTimer);
-        bool isAttacking = bb.GetValue<bool>(BlackboardKeys.IsAttacking);
-        return attackTimer <= 0f && !isAttacking;
-    }
+        #region Death Sequence
 
-    #endregion
+        static Node BuildDeathSequence(EnemyBT enemy)
+        {
+            return new Sequence(
+                new ConditionNode(() => IsDead(enemy)),
+                new ActionNode(() => ExecuteDeath(enemy))
+            );
+        }
 
-    #region Actions
+        static bool IsDead(EnemyBT enemy)
+        {
+            var field = enemy.GetType().GetField("blackboard",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (field?.GetValue(enemy) is Blackboard bb)
+            {
+                return bb.GetValue<bool>(BlackboardKeys.IsDead);
+            }
+            return false;
+        }
 
-    static Node.Status Idle(EnemyBT enemy)
-    {
-        enemy.Stop();
-        enemy.FacePlayer();
-        return Node.Status.Running;
-    }
+        static Node.Status ExecuteDeath(EnemyBT enemy)
+        {
+            enemy.Die();
+            return Node.Status.Success;
+        }
 
-    static Node.Status Patrol(EnemyBT enemy, EnemyData data)
-    {
-        var bb = GetBlackboard(enemy);
+        #endregion
 
-        // Check wait timer
-        float waitTimer = bb.GetValue<float>(BlackboardKeys.PatrolWaitTimer);
-        if (waitTimer > 0f)
+        #region Conditions
+
+        static bool IsPlayerDetected(EnemyBT enemy, EnemyData data)
+        {
+            var bb = GetBlackboard(enemy);
+            return bb.GetValue<bool>("playerDetected", false);
+        }
+
+        static bool IsInAttackRange(EnemyBT enemy, EnemyData data)
+        {
+            var bb = GetBlackboard(enemy);
+            float distance = bb.GetValue<float>(BlackboardKeys.PlayerDistance, float.MaxValue);
+            return distance <= data.attackRange;
+        }
+
+        static bool CanAttack(EnemyBT enemy)
+        {
+            var bb = GetBlackboard(enemy);
+            float attackTimer = bb.GetValue<float>(BlackboardKeys.AttackTimer);
+            bool isAttacking = bb.GetValue<bool>(BlackboardKeys.IsAttacking);
+            return attackTimer <= 0f && !isAttacking;
+        }
+
+        #endregion
+
+        #region Actions - Grounded Enemies
+
+        static Node.Status Idle(EnemyBT enemy)
         {
             enemy.Stop();
+            enemy.FacePlayer();
             return Node.Status.Running;
         }
 
-        // Get patrol state
-        Vector3 startPos = bb.GetValue<Vector3>(BlackboardKeys.PatrolStartPosition);
-        bool movingRight = bb.GetValue<bool>(BlackboardKeys.PatrolMovingRight);
-
-        // Move
-        float direction = movingRight ? 1f : -1f;
-        enemy.Move(direction);
-
-        // Check if reached patrol limit
-        float distanceFromStart = enemy.transform.position.x - startPos.x;
-
-        if (movingRight && distanceFromStart >= data.patrolDistance)
+        static Node.Status Patrol(EnemyBT enemy, EnemyData data)
         {
-            // Reached right limit
-            bb.SetValue(BlackboardKeys.PatrolMovingRight, false);
-            bb.SetValue(BlackboardKeys.PatrolWaitTimer, data.patrolWaitTime);
-        }
-        else if (!movingRight && distanceFromStart <= -data.patrolDistance)
-        {
-            // Reached left limit
-            bb.SetValue(BlackboardKeys.PatrolMovingRight, true);
-            bb.SetValue(BlackboardKeys.PatrolWaitTimer, data.patrolWaitTime);
-        }
+            var bb = GetBlackboard(enemy);
 
-        // Check for edge/wall
-        if (!enemy.IsGroundAhead() && waitTimer <= 0f)
-        {
-            bb.SetValue(BlackboardKeys.PatrolMovingRight, !movingRight);
-            bb.SetValue(BlackboardKeys.PatrolWaitTimer, data.patrolWaitTime);
-        }
+            float waitTimer = bb.GetValue<float>(BlackboardKeys.PatrolWaitTimer);
+            if (waitTimer > 0f)
+            {
+                enemy.Stop();
+                return Node.Status.Running;
+            }
 
-        return Node.Status.Running;
-    }
+            Vector3 startPos = bb.GetValue<Vector3>(BlackboardKeys.PatrolStartPosition);
+            bool movingRight = bb.GetValue<bool>(BlackboardKeys.PatrolMovingRight);
 
-    static Node.Status Chase(EnemyBT enemy, EnemyData data)
-    {
-        var bb = GetBlackboard(enemy);
-        Transform player = bb.GetValue<Transform>(BlackboardKeys.Player);
+            float direction = movingRight ? 1f : -1f;
+            enemy.Move(direction);
 
-        if (player == null)
-        {
-            return Node.Status.Failure;
-        }
+            float distanceFromStart = enemy.transform.position.x - startPos.x;
 
-        // Move towards player
-        float direction = player.position.x > enemy.transform.position.x ? 1f : -1f;
-        enemy.Move(direction);
+            if (movingRight && distanceFromStart >= data.patrolDistance)
+            {
+                bb.SetValue(BlackboardKeys.PatrolMovingRight, false);
+                bb.SetValue(BlackboardKeys.PatrolWaitTimer, data.patrolWaitTime);
+            }
+            else if (!movingRight && distanceFromStart <= -data.patrolDistance)
+            {
+                bb.SetValue(BlackboardKeys.PatrolMovingRight, true);
+                bb.SetValue(BlackboardKeys.PatrolWaitTimer, data.patrolWaitTime);
+            }
 
-        return Node.Status.Running;
-    }
+            if (!enemy.IsGroundAhead() && waitTimer <= 0f)
+            {
+                bb.SetValue(BlackboardKeys.PatrolMovingRight, !movingRight);
+                bb.SetValue(BlackboardKeys.PatrolWaitTimer, data.patrolWaitTime);
+            }
 
-    static Node.Status AttackMelee(EnemyBT enemy, EnemyData data)
-    {
-        enemy.Stop();
-        enemy.FacePlayer();
-
-        // Check if can attack
-        if (!CanAttack(enemy))
-        {
             return Node.Status.Running;
         }
 
-        // Perform attack
-        enemy.PerformMeleeAttack();
-
-        return Node.Status.Success;
-    }
-
-    static Node.Status ShootProjectile(EnemyBT enemy, EnemyData data)
-    {
-        enemy.Stop();
-        enemy.FacePlayer();
-
-        // Check if can attack
-        if (!CanAttack(enemy))
+        static Node.Status Chase(EnemyBT enemy, EnemyData data)
         {
+            var bb = GetBlackboard(enemy);
+            Transform player = bb.GetValue<Transform>(BlackboardKeys.Player);
+
+            if (player == null)
+            {
+                return Node.Status.Failure;
+            }
+
+            float direction = player.position.x > enemy.transform.position.x ? 1f : -1f;
+            enemy.Move(direction);
+
             return Node.Status.Running;
         }
 
-        // Shoot
-        enemy.ShootProjectile();
+        static Node.Status AttackMelee(EnemyBT enemy, EnemyData data)
+        {
+            enemy.Stop();
+            enemy.FacePlayer();
 
-        return Node.Status.Success;
+            if (!CanAttack(enemy))
+            {
+                return Node.Status.Running;
+            }
+
+            enemy.PerformMeleeAttack();
+
+            return Node.Status.Success;
+        }
+
+        static Node.Status ShootProjectile(EnemyBT enemy, EnemyData data)
+        {
+            enemy.Stop();
+            enemy.FacePlayer();
+
+            if (!CanAttack(enemy))
+            {
+                return Node.Status.Running;
+            }
+
+            enemy.ShootProjectile();
+
+            return Node.Status.Success;
+        }
+
+        #endregion
+
+        #region Actions - Flying Enemies
+
+        static Node.Status FlyPatrol(EnemyBT enemy, EnemyData data)
+        {
+            var bb = GetBlackboard(enemy);
+
+            Vector3 startPos = bb.GetValue<Vector3>(BlackboardKeys.PatrolStartPosition);
+            bool movingRight = bb.GetValue<bool>(BlackboardKeys.PatrolMovingRight);
+
+            float direction = movingRight ? 1f : -1f;
+            enemy.Move(direction);
+
+            float distance = enemy.transform.position.x - startPos.x;
+
+            if (movingRight && distance >= data.patrolDistance)
+            {
+                bb.SetValue(BlackboardKeys.PatrolMovingRight, false);
+            }
+            else if (!movingRight && distance <= -data.patrolDistance)
+            {
+                bb.SetValue(BlackboardKeys.PatrolMovingRight, true);
+            }
+
+            return Node.Status.Running;
+        }
+
+        static Node.Status FlyChase(EnemyBT enemy, EnemyData data)
+        {
+            var bb = GetBlackboard(enemy);
+            Transform player = bb.GetValue<Transform>(BlackboardKeys.Player);
+            if (player == null) return Node.Status.Failure;
+
+            Vector2 dir = (player.position - enemy.transform.position).normalized;
+            enemy.GetRigidbody().velocity = dir * data.moveSpeed;
+
+            enemy.FacePlayer();
+
+            return Node.Status.Running;
+        }
+
+        static Node.Status SwoopAttack(EnemyBT enemy, EnemyData data)
+        {
+            var bb = GetBlackboard(enemy);
+            Transform player = bb.GetValue<Transform>(BlackboardKeys.Player);
+            if (player == null) return Node.Status.Failure;
+
+            Vector2 dir = (player.position - enemy.transform.position).normalized;
+            enemy.GetRigidbody().velocity = dir * (data.moveSpeed * 1.5f);
+
+            if (enemy.enemyData != null)
+                AudioManager.Instance?.PlaySFX(enemy.enemyData.attackSFX);
+
+            if (enemy.GetAnimator() != null)
+                enemy.GetAnimator().SetTrigger("Attack");
+
+            float dist = Vector2.Distance(enemy.transform.position, player.position);
+            if (dist < data.attackRange * 0.8f)
+            {
+                var target = player.GetComponent<IDamageable>();
+                if (target != null)
+                    target.TakeDamage(data.attackDamage);
+            }
+
+            return Node.Status.Success;
+        }
+
+        #endregion
+
+        #region Helpers
+
+        static Blackboard GetBlackboard(EnemyBT enemy)
+        {
+            var field = enemy.GetType().GetField("blackboard",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            return field?.GetValue(enemy) as Blackboard;
+        }
+
+        #endregion
     }
-
-    #endregion
-
-    #region Helper
-
-    static Blackboard GetBlackboard(EnemyBT enemy)
-    {
-        // Use reflection to access private blackboard field
-        var field = enemy.GetType().GetField("blackboard",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return field?.GetValue(enemy) as Blackboard;
-    }
-
-    #endregion
 }

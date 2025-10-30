@@ -1,4 +1,6 @@
-using UnityEngine;
+/*using UnityEngine;
+using Game.Core;
+using Game.Player;
 
 public class CheckpointTester : MonoBehaviour
 {
@@ -114,4 +116,4 @@ public class CheckpointTester : MonoBehaviour
             GUI.Label(new Rect(10, Screen.height - 200, 300, 30), healthInfo, style);
         }
     }
-}
+}*/
