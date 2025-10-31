@@ -2,6 +2,7 @@ using UnityEngine;
 using BehaviorTree;
 using Game.Core;
 using Game.Player;
+using System.Collections.Generic;
 
 namespace Game.AI
 {
@@ -11,6 +12,10 @@ namespace Game.AI
         [Header("Enemy Data")]
         [Tooltip("ScriptableObject defining this enemy's stats")]
         public EnemyData enemyData;
+
+        [Header("Debug")]
+        public bool showPathDebug = false;
+        public List<Vector3> currentPath;
 
         [Header("Detection")]
         [Tooltip("Layer to detect player on")]
@@ -85,12 +90,13 @@ namespace Game.AI
 
         public Rigidbody2D GetRigidbody() => rb;
         public Animator GetAnimator() => anim;
-
+        public LayerMask GetGroundLayer() => groundLayer;
 
         void InitializeBlackboard()
         {
             // Initialize state
             blackboard.SetValue(BlackboardKeys.IsDead, false);
+            blackboard.SetValue(BlackboardKeys.ReturningToPatrol, false);
             currentHealth = enemyData.maxHealth;
 
             // Initialize patrol
@@ -357,5 +363,23 @@ namespace Game.AI
         }
 
         #endregion
+
+#if UNITY_EDITOR
+        void OnDrawGizmos()
+        {
+            if (!showPathDebug || currentPath == null || currentPath.Count < 2)
+                return;
+
+            Gizmos.color = Color.cyan;
+
+            for (int i = 0; i < currentPath.Count - 1; i++)
+            {
+                Gizmos.DrawLine(currentPath[i], currentPath[i + 1]);
+                Gizmos.DrawSphere(currentPath[i], 0.1f);
+            }
+
+            Gizmos.DrawSphere(currentPath[^1], 0.12f); // endpoint
+        }
+#endif
     }
 }

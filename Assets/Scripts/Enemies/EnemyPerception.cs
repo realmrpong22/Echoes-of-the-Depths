@@ -34,8 +34,14 @@ namespace Game.AI
 
                 if (angle <= data.viewAngle * 0.5f)
                 {
-                    if (!Physics2D.Raycast(enemyTransform.position, toPlayer.normalized, distance, visionBlockers))
+                    if (data.ignoreVisionBlockers)
+                    {
                         detected = true;
+                    }
+                    else if (!Physics2D.Raycast(enemyTransform.position, toPlayer.normalized, distance, visionBlockers))
+                    {
+                        detected = true;
+                    }
                 }
             }
 

@@ -43,6 +43,26 @@ namespace BehaviorTree
             }
         }
 
+        public bool TryRemove(string key)
+        {
+            if (data.ContainsKey(key))
+            {
+                data.Remove(key);
+                return true;
+            }
+            return false;
+        }
+
+        public bool ContainsKey(string key) => data.ContainsKey(key);
+
+        public System.Type GetValueType(string key)
+        {
+            if (data.ContainsKey(key))
+                return data[key].GetType();
+            return null;
+        }
+
+
         public void Clear()
         {
             data.Clear();
@@ -75,5 +95,9 @@ namespace BehaviorTree
         public const string IsDead = "isDead";
         public const string CurrentHealth = "currentHealth";
         public const string AggroTarget = "aggroTarget";
+
+        public const string ReturnPath = "returnPath";
+        public const string ReturningToPatrol = "returningToPatrol";
+        public const string LastSeenTimer = "lastSeenTimer"; // optional future use
     }
 }

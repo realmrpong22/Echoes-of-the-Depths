@@ -56,6 +56,11 @@ namespace Game.AI
         [Tooltip("Delay before firing projectile (for aiming animation)")]
         public float aimDelay = 0.4f;
 
+        [Header("Flight Settings (Flying only)")]
+        public float patrolRadius = 3f;
+        public float hoverHeight = 2f;
+        public float verticalSpeed = 2f;
+
         [Header("Loot")]
         [Tooltip("Item to drop on death (optional)")]
         public GameObject dropItem;
@@ -73,6 +78,9 @@ namespace Game.AI
 
         [Tooltip("Sound when attacking")]
         public string attackSFX = "EnemyAttack";
+
+        [Header("AI Perception")]
+        public bool ignoreVisionBlockers = false;
 
         public float optimalRange = 6f;
         public float retreatRange = 2.5f;

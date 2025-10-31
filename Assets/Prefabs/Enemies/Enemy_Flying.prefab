@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6837422107739669414}
   - component: {fileID: 6677326586965880819}
   - component: {fileID: 6400171462053127273}
+  - component: {fileID: 4152493591911113541}
   m_Layer: 7
   m_Name: Enemy_Flying
   m_TagString: Enemy
@@ -78,7 +79,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 0, g: 1, b: 0, a: 1}
+  m_Color: {r: 0, g: 0, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -96,7 +97,7 @@ Rigidbody2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1031149046189047222}
-  m_BodyType: 0
+  m_BodyType: 1
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
@@ -182,6 +183,20 @@ MonoBehaviour:
     m_Bits: 256
   spriteRenderer: {fileID: 6419953857469889948}
   damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
+  maxHealth: 3
+--- !u!114 &4152493591911113541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1031149046189047222}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bdeae736d507ff45a22753f7060439c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 36253b74f444a2149b40bc47dcf96e72, type: 2}
 --- !u!1 &7261872151831876003
 GameObject:
   m_ObjectHideFlags: 0
