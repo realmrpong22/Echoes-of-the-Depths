@@ -96,7 +96,6 @@ namespace Game.AI
         {
             // Initialize state
             blackboard.SetValue(BlackboardKeys.IsDead, false);
-            blackboard.SetValue(BlackboardKeys.ReturningToPatrol, false);
             currentHealth = enemyData.maxHealth;
 
             // Initialize patrol

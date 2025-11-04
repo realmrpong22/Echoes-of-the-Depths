@@ -9,7 +9,6 @@ namespace Game.AI
         private static readonly Vector2Int[] Directions =
         {
             new(1, 0), new(-1, 0), new(0, 1), new(0, -1),
-            new(1, 1), new(-1, 1), new(1, -1), new(-1, -1)
         };
 
         public static List<Vector3> FindPath(Vector3 startWorld, Vector3 endWorld)

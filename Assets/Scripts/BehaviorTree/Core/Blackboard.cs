@@ -96,8 +96,6 @@ namespace BehaviorTree
         public const string CurrentHealth = "currentHealth";
         public const string AggroTarget = "aggroTarget";
 
-        public const string ReturnPath = "returnPath";
-        public const string ReturningToPatrol = "returningToPatrol";
         public const string LastSeenTimer = "lastSeenTimer"; // optional future use
     }
 }

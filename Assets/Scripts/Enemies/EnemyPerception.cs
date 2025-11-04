@@ -46,6 +46,10 @@ namespace Game.AI
             }
 
             bb.SetValue("playerDetected", detected);
+            //if (detected)
+                //Debug.Log($"[{enemyTransform.name}] Perception: Player detected (dist={distance:F1})");
+            //else
+                //Debug.Log($"[{enemyTransform.name}] Perception: Player lost or out of sight (dist={distance:F1})");
         }
     }
 }
