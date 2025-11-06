@@ -324,7 +324,7 @@ namespace Game.AI
             }
 
             Vector2 dir = ((Vector2)target - (Vector2)enemy.transform.position).normalized;
-            rb.velocity = Vector2.Lerp(rb.velocity, dir * data.moveSpeed, Time.deltaTime * 8f);
+            rb.velocity = Vector2.Lerp(rb.velocity, dir * data.moveSpeed, Time.deltaTime * 5f);
             enemy.FacePlayer();
 
             if (Vector2.Distance(enemy.transform.position, target) < 0.25f)
