@@ -43,7 +43,7 @@ namespace Game.Player
             pc.rb.velocity = new Vector2(inputX * moveSpeed, pc.rb.velocity.y);
 
             if (inputX != 0)
-                pc.sprite.flipX = inputX < 0;
+                pc.sprite.flipX = inputX > 0;
 
             if (IsGrounded())
                 coyoteCounter = coyoteTime;
@@ -58,6 +58,11 @@ namespace Game.Player
                 Jump();
                 jumpBufferCounter = 0;
             }
+
+            pc.anim.SetBool("isGrounded", IsGrounded());
+            pc.anim.SetBool("isRunning", Mathf.Abs(inputX) > 0.1f);
+            pc.anim.SetBool("isFalling", pc.rb.velocity.y < -0.1f);
+            pc.anim.SetFloat("verticalSpeed", pc.rb.velocity.y);
         }
 
         private void Jump()
