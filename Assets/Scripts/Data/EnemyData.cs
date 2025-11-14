@@ -92,6 +92,7 @@ namespace Game.AI
         Melee,
         Ranged,
         Air,
-        Guardian
+        Guardian,
+        MeleePatrol
     }
 }

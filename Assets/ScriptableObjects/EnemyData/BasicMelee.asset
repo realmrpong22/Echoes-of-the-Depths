@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db172ba99c5e38c449862dd551b320cc, type: 3}
   m_Name: BasicMelee
   m_EditorClassIdentifier: 
-  enemyName: Basic Melee
+  enemyName: Zombie
   enemyType: 0
   maxHealth: 50
   attackDamage: 10
@@ -27,8 +27,15 @@ MonoBehaviour:
   projectileSpeed: 8
   fireRate: 2
   aimDelay: 0.4
+  patrolRadius: 3
+  hoverHeight: 2
+  verticalSpeed: 2
   dropItem: {fileID: 0}
   dropChance: 0.3
   hurtSFX: EnemyHurt
   deathSFX: EnemyDeath
   attackSFX: EnemyAttack
+  ignoreVisionBlockers: 0
+  optimalRange: 6
+  retreatRange: 2.5
+  engageRange: 8

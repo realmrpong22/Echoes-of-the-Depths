@@ -46,6 +46,8 @@ namespace Game.AI
         private bool isFacingRight = true;
         private EnemyPerception perception;
 
+        public GameObject hitVFXPrefab;
+
         void Start()
         {
             rb = GetComponent<Rigidbody2D>();
@@ -77,14 +79,10 @@ namespace Game.AI
         void Update()
         {
             if (rootNode == null) return;
-
-            // Update blackboard data each frame
             UpdateBlackboard();
 
-            // Evaluate behavior tree
             rootNode.Evaluate();
 
-            // Update animator
             UpdateAnimator();
         }
 
@@ -94,16 +92,13 @@ namespace Game.AI
 
         void InitializeBlackboard()
         {
-            // Initialize state
             blackboard.SetValue(BlackboardKeys.IsDead, false);
             currentHealth = enemyData.maxHealth;
 
-            // Initialize patrol
             blackboard.SetValue(BlackboardKeys.PatrolStartPosition, transform.position);
             blackboard.SetValue(BlackboardKeys.PatrolMovingRight, true);
             blackboard.SetValue(BlackboardKeys.PatrolWaitTimer, 0f);
 
-            // Initialize combat
             blackboard.SetValue(BlackboardKeys.AttackTimer, 0f);
             blackboard.SetValue(BlackboardKeys.IsAttacking, false);
         }
@@ -113,7 +108,6 @@ namespace Game.AI
             if (player != null && perception != null)
                 perception.UpdatePerception(blackboard, player);
 
-            // existing cooldowns & patrol timers
             float attackTimer = blackboard.GetValue<float>(BlackboardKeys.AttackTimer);
             if (attackTimer > 0f)
                 blackboard.SetValue(BlackboardKeys.AttackTimer, attackTimer - Time.deltaTime);
@@ -140,6 +134,9 @@ namespace Game.AI
                 case EnemyType.Air:
                     return EnemyTreeBuilder.BuildAirTree(this, enemyData);
 
+                case EnemyType.MeleePatrol:
+                    return EnemyTreeBuilder.BuildMeleePatrolTree(this, enemyData);
+
                 default:
                     Debug.LogError($"Unknown enemy type: {enemyData.enemyType}");
                     return EnemyTreeBuilder.BuildMeleeTree(this, enemyData);
@@ -160,7 +157,6 @@ namespace Game.AI
         {
             rb.velocity = new Vector2(direction * enemyData.moveSpeed, rb.velocity.y);
 
-            // Face the direction we're moving
             if ((direction > 0 && !isFacingRight) || (direction < 0 && isFacingRight))
             {
                 Flip();
@@ -206,26 +202,23 @@ namespace Game.AI
 
             blackboard.SetValue(BlackboardKeys.IsAttacking, true);
 
-            if (anim != null)
-            {
-                anim.SetTrigger("Attack");
-            }
-
+            anim?.SetTrigger("Attack");
             AudioManager.Instance?.PlaySFX(enemyData.attackSFX);
-
-            // Check if player is in range and deal damage
-            float distance = Vector2.Distance(transform.position, player.position);
-            if (distance <= enemyData.attackRange)
-            {
-                var target = player.GetComponent<IDamageable>();
-                if (target != null)
-                    target.TakeDamage(enemyData.attackDamage);
-            }
 
             blackboard.SetValue(BlackboardKeys.AttackTimer, enemyData.fireRate);
 
-            // Reset attacking flag after short delay
             Invoke(nameof(ResetAttacking), 0.5f);
+        }
+
+        public void ApplyMeleeDamage()
+        {
+            if (player == null) return;
+
+            float distance = Vector2.Distance(transform.position, player.position);
+            if (distance <= enemyData.attackRange)
+            {
+                player.GetComponent<IDamageable>()?.TakeDamage(enemyData.attackDamage);
+            }
         }
 
         public void ShootProjectile()
@@ -272,14 +265,11 @@ namespace Game.AI
             isAiming = true;
             blackboard.SetValue(BlackboardKeys.IsAttacking, true);
 
-            // Optional: play aim animation or change color
             if (anim != null)
                 anim.SetTrigger("Aim");
 
-            // Wait before shooting
             yield return new WaitForSeconds(delay);
 
-            // Actually fire
             ShootProjectile();
 
             blackboard.SetValue(BlackboardKeys.AttackTimer, enemyData.fireRate);
@@ -345,22 +335,27 @@ namespace Game.AI
             rb.isKinematic = true;
             col.enabled = false;
 
-            // Blackboard update for Behavior Tree awareness
             blackboard?.SetValue(BlackboardKeys.IsDead, true);
 
-            // Drop loot
             if (enemyData.dropItem != null && Random.value <= enemyData.dropChance)
             {
                 Instantiate(enemyData.dropItem, transform.position, Quaternion.identity);
             }
 
-            // Disable BT processing
             rootNode = null;
             enabled = false;
 
             Destroy(gameObject, 1.5f);
         }
 
+        #endregion
+
+        #region VFX
+        public void ShowHitEffect()
+        {
+            Vector3 offset = spriteRenderer.flipX ? new Vector3(-0.5f, 0, 0) : new Vector3(0.5f, 0, 0);
+            Instantiate(hitVFXPrefab, transform.position + offset, Quaternion.identity);
+        }
         #endregion
 
 #if UNITY_EDITOR
@@ -377,7 +372,7 @@ namespace Game.AI
                 Gizmos.DrawSphere(currentPath[i], 0.1f);
             }
 
-            Gizmos.DrawSphere(currentPath[^1], 0.12f); // endpoint
+            Gizmos.DrawSphere(currentPath[^1], 0.12f);
         }
 #endif
     }

@@ -32,6 +32,15 @@ namespace Game.AI
             );
         }
 
+        public static Node BuildMeleePatrolTree(EnemyBT enemy, EnemyData data)
+        {
+            return new Selector(
+                BuildDeathSequence(enemy),
+                new ActionNode(() => Patrol(enemy, data))
+            );
+        }
+
+
         public static Node BuildRangedTree(EnemyBT enemy, EnemyData data)
         {
             return new Selector(
