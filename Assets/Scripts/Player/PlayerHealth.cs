@@ -20,7 +20,7 @@ namespace Game.Player
 
         public void TakeDamage(int dmg)
         {
-            Debug.Log($"TakeDamage called — currentHealth: {currentHealth}");
+            //Debug.Log($"TakeDamage called — currentHealth: {currentHealth}");
             if (invincible) return;
 
             currentHealth -= dmg;
@@ -30,7 +30,7 @@ namespace Game.Player
                 return;
             }
 
-            Debug.Log($"Player took {dmg} damage!");
+            //Debug.Log($"Player took {dmg} damage!");
 
             StartCoroutine(Invincibility());
             pc.anim.SetTrigger("Hurt");

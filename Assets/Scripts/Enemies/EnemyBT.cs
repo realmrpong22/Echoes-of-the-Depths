@@ -2,12 +2,13 @@ using UnityEngine;
 using BehaviorTree;
 using Game.Core;
 using Game.Player;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Game.AI
 {
     [RequireComponent(typeof(Rigidbody2D))]
-    public class EnemyBT : MonoBehaviour
+    public class EnemyBT : MonoBehaviour, IDamageable
     {
         [Header("Enemy Data")]
         [Tooltip("ScriptableObject defining this enemy's stats")]
@@ -31,6 +32,8 @@ namespace Game.AI
         [Header("Visual Feedback")]
         [Tooltip("Sprite renderer to flash on damage")]
         public SpriteRenderer spriteRenderer;
+        [SerializeField] private float hitStunDuration = 0.15f;
+        private bool isStunned;
 
         [Tooltip("Color to flash when damaged")]
         public Color damageFlashColor = Color.red;
@@ -53,6 +56,11 @@ namespace Game.AI
             rb = GetComponent<Rigidbody2D>();
             anim = GetComponent<Animator>();
             col = GetComponent<Collider2D>();
+
+            if (spriteRenderer == null)
+            {
+                spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            }
 
             if (enemyData == null)
             {
@@ -78,6 +86,8 @@ namespace Game.AI
 
         void Update()
         {
+            if (isStunned) return;
+
             if (rootNode == null) return;
             UpdateBlackboard();
 
@@ -297,11 +307,14 @@ namespace Game.AI
 
         public void TakeDamage(int damage)
         {
+            Debug.Log($"Enemy TakeDamage called on {gameObject.name}");
+
             if (isDead) return;
 
             currentHealth -= damage;
             AudioManager.Instance?.PlaySFX(enemyData.hurtSFX);
             StartCoroutine(FlashOnHit());
+            StartCoroutine(HitStun());
 
             if (currentHealth <= 0)
             {
@@ -314,14 +327,28 @@ namespace Game.AI
             }
         }
 
-        private System.Collections.IEnumerator FlashOnHit()
+        private IEnumerator FlashOnHit()
         {
-            if (spriteRenderer == null) yield break;
+            Debug.Log($"FlashOnHit called on {gameObject.name}");
+
+            if (spriteRenderer == null)
+            {
+                Debug.LogError("SpriteRenderer is NULL");
+                yield break;
+            }
 
             Color original = spriteRenderer.color;
             spriteRenderer.color = damageFlashColor;
             yield return new WaitForSeconds(0.1f);
             spriteRenderer.color = original;
+        }
+
+        private IEnumerator HitStun()
+        {
+            isStunned = true;
+            rb.velocity = Vector2.zero;
+            yield return new WaitForSeconds(hitStunDuration);
+            isStunned = false;
         }
 
         public void Die()

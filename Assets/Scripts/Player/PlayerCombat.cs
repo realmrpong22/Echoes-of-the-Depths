@@ -37,24 +37,36 @@ namespace Game.Player
         {
             pc.anim.SetTrigger("Attack");
             AudioManager.Instance?.PlaySFX("PlayerAttack");
+        }
 
-            Vector2 attackPos = (Vector2)transform.position + Vector2.right * (pc.sprite.flipX ? -1 : 1) * attackRange * 0.5f;
-            Collider2D[] hits = Physics2D.OverlapCircleAll(attackPos, attackRange, enemyLayer);
+
+        public void ApplyAttackHitbox()
+        {
+            Debug.Log("Player attack triggered");
+            Debug.Log($"EnemyLayer mask value: {enemyLayer.value}");
+
+            Vector2 attackPos =
+                (Vector2)transform.position +
+                Vector2.right * (pc.sprite.flipX ? 1 : -1) * attackRange * 0.5f;
+
+            Collider2D[] hits =
+                Physics2D.OverlapCircleAll(attackPos, attackRange, enemyLayer);
 
             foreach (var hit in hits)
             {
-                var enemyHealth = hit.GetComponent<EnemyBT>();
-                if (enemyHealth != null)
-                {
-                    enemyHealth.TakeDamage(attackDamage);
-                }
+                Debug.Log(
+                    $"Hit object: {hit.gameObject.name} | " +
+                    $"Has EnemyBT on self: {hit.GetComponent<EnemyBT>() != null} | " +
+                    $"Has EnemyBT in parent: {hit.GetComponentInParent<EnemyBT>() != null}"
+                );
+                hit.GetComponent<IDamageable>()?.TakeDamage(attackDamage);
             }
         }
 
         void OnDrawGizmosSelected()
         {
             if (pc == null) return;
-            Vector2 attackPos = (Vector2)transform.position + Vector2.right * (pc.sprite.flipX ? -1 : 1) * attackRange * 0.5f;
+            Vector2 attackPos = (Vector2)transform.position + Vector2.right * (pc.sprite.flipX ? 1 : -1) * attackRange * 0.5f;
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(attackPos, attackRange);
         }

@@ -185,9 +185,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   spriteRenderer: {fileID: 6419953857469889948}
+  hitStunDuration: 0.2
   damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
   hitVFXPrefab: {fileID: 7264280501092663086, guid: d273457de9c25f043897fa61720d95dc, type: 3}
-  maxHealth: 3
+  maxHealth: 30
 --- !u!114 &9075742315063862011
 MonoBehaviour:
   m_ObjectHideFlags: 0
