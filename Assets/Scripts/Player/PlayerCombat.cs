@@ -14,9 +14,14 @@ namespace Game.Player
         public LayerMask enemyLayer;
 
         private PlayerController pc;
+        private PlayerInputHandler input;
         private float attackTimer;
 
-        void Awake() => pc = GetComponent<PlayerController>();
+        void Awake() 
+        {
+            pc = GetComponent<PlayerController>();
+            input = GetComponent<PlayerInputHandler>();
+        }
 
         public void HandleInput()
         {
@@ -26,7 +31,7 @@ namespace Game.Player
                 return;
             }
 
-            if (Input.GetButtonDown("Fire1"))
+            if (input.AttackPressed)
             {
                 PerformAttack();
                 attackTimer = attackCooldown;

@@ -21,21 +21,24 @@ namespace Game.Player
         private float jumpBufferCounter;
         private bool isJumping;
         private float inputX;
+        private PlayerInputHandler input;
 
-        void Awake() => pc = GetComponent<PlayerController>();
+
+        void Awake() 
+        {
+            pc = GetComponent<PlayerController>();
+            input = GetComponent<PlayerInputHandler>();
+        } 
 
         public void HandleInput()
         {
-            inputX = Input.GetAxisRaw("Horizontal");
+            inputX = input.Move.x;
 
-            if (Input.GetButtonDown("Jump"))
+            if (input.JumpPressed)
                 jumpBufferCounter = jumpBufferTime;
 
-            if (Input.GetButtonUp("Jump"))
-            {
-                if (pc.rb.velocity.y > 0)
-                    pc.rb.velocity = new Vector2(pc.rb.velocity.x, pc.rb.velocity.y * 0.5f);
-            }
+            if (input.JumpReleased && pc.rb.velocity.y > 0)
+               pc.rb.velocity = new Vector2(pc.rb.velocity.x, pc.rb.velocity.y * 0.5f);
         }
 
         public void ApplyMovement()
