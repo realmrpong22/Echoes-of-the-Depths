@@ -12,6 +12,8 @@ public class PlayerInputHandler : MonoBehaviour
     public bool AttackPressed { get; private set; }
     public bool DashPressed { get; private set; }
 
+    public event System.Action OnDash;
+
     private InputAction move;
     private InputAction jump;
     private InputAction attack;

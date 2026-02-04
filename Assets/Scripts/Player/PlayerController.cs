@@ -32,7 +32,6 @@ namespace Game.Player
         void Update()
         {
             Movement.HandleInput();
-            Abilities.HandleInput();
             Combat.HandleInput();
         }
 
