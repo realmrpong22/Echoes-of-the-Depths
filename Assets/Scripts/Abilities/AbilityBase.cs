@@ -1,6 +1,12 @@
 using UnityEngine;
 using Game.Player;
 
+public enum AbilityTypes
+{
+    Dash,
+    DoubleJump
+}
+
 public abstract class AbilityBase : MonoBehaviour
 {
     protected PlayerInputHandler input;

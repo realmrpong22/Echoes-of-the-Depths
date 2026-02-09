@@ -8,7 +8,7 @@ public class DashAbility : AbilityBase
     [SerializeField] float dashDuration = 0.15f;
     [SerializeField] float dashCooldown = 0.4f;
 
-    public bool IsActive { get; private set; }
+    public bool isActive { get; private set; }
     public Vector2 Velocity { get; private set; }
 
     bool canDash = true;
@@ -16,7 +16,7 @@ public class DashAbility : AbilityBase
 
     public bool CanDash()
     {
-        if (!canDash || IsActive)
+        if (!(canDash && isActive))
             return false;
 
         if (!movement.IsGrounded() && dashedInAir)
@@ -36,7 +36,7 @@ public class DashAbility : AbilityBase
     IEnumerator DashRoutine(float dir)
     {
         canDash = false;
-        IsActive = true;
+        isActive = true;
 
         if (!movement.IsGrounded())
             dashedInAir = true;
@@ -45,7 +45,7 @@ public class DashAbility : AbilityBase
 
         yield return new WaitForSeconds(dashDuration);
 
-        IsActive = false;
+        isActive = false;
         Velocity = Vector2.zero;
 
         yield return new WaitForSeconds(dashCooldown);
@@ -56,5 +56,10 @@ public class DashAbility : AbilityBase
     {
         if (movement.IsGrounded())
             dashedInAir = false;
+    }
+
+    public void Unlock()
+    {
+        isActive = true;
     }
 }

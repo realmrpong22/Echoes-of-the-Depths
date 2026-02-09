@@ -10,4 +10,18 @@ public class PlayerAbilities : MonoBehaviour
         Dash = GetComponent<DashAbility>();
         DoubleJump = GetComponent<DoubleJumpAbility>();
     }
+
+    public void UnlockAbility(AbilityTypes type)
+    {
+        switch (type)
+        {
+            case AbilityTypes.Dash:
+                Dash?.Unlock();
+                break;
+
+            case AbilityTypes.DoubleJump:
+                DoubleJump?.Unlock();
+                break;
+        }
+    }
 }

@@ -59,7 +59,7 @@ namespace Game.Player
         {
             bool grounded = IsGrounded();
 
-            if (abilities.Dash.IsActive)
+            if (abilities.Dash.isActive)
             {
                 pc.rb.velocity = abilities.Dash.Velocity;
                 return;

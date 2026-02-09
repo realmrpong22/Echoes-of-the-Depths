@@ -7,7 +7,7 @@ namespace Game.Player
     public class PlayerHealth : MonoBehaviour, IDamageable
     {
         public int maxHealth = 5;
-        private int currentHealth;
+        public int currentHealth { get; private set; }
         private bool invincible;
 
         private PlayerController pc;
@@ -56,6 +56,11 @@ namespace Game.Player
             pc.anim.SetTrigger("Die");
             pc.rb.velocity = Vector2.zero;
             GameManager.Instance.RespawnPlayer();
+        }
+
+        public void Heal(int amount)
+        {
+            currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
         }
     }
 }

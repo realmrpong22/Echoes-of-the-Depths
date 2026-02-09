@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class AbilityPickup : Pickup
 {
-    [SerializeField] private AbilityType abilityType;
+    [SerializeField] private AbilityTypes abilityType;
 
     protected override void Apply(GameObject player)
     {
