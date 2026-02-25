@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using Game.Core;
 
 namespace Game.Player
@@ -8,7 +9,11 @@ namespace Game.Player
     {
         public int maxHealth = 5;
         public int currentHealth { get; private set; }
+
+        [SerializeField] private float respawnInvulnDuration = 2f;
         private bool invincible;
+
+        private bool isDead;
 
         private PlayerController pc;
 
@@ -16,12 +21,13 @@ namespace Game.Player
         {
             pc = GetComponent<PlayerController>();
             currentHealth = maxHealth;
+            isDead = false;
         }
 
         public void TakeDamage(int dmg)
         {
             //Debug.Log($"TakeDamage called — currentHealth: {currentHealth}");
-            if (invincible) return;
+            if (isDead || invincible) return;
 
             currentHealth -= dmg;
             if (currentHealth <= 0)
@@ -51,11 +57,46 @@ namespace Game.Player
             invincible = false;
         }
 
-        private void Die()
+        public void Die()
         {
-            pc.anim.SetTrigger("Die");
+            isDead = true;
+
+
             pc.rb.velocity = Vector2.zero;
-            GameManager.Instance.RespawnPlayer();
+            pc.enabled = false;
+            pc.anim.SetTrigger("Dead");
+
+            //GetComponent<PlayerRespawn>()?.Respawn();
+            currentHealth = maxHealth;
+        }
+
+        public void OnDeathAnimationFinished()
+        {
+            StartCoroutine(RespawnRoutine());
+        }
+
+        private IEnumerator RespawnRoutine()
+        {
+            ScreenFader fader = FindObjectOfType<ScreenFader>();
+
+            yield return fader.FadeOut();
+
+            PlayerRespawn respawn = GetComponent<PlayerRespawn>();
+            respawn?.Respawn();
+
+            currentHealth = maxHealth;
+
+            Animator anim = GetComponent<Animator>();
+            anim.ResetTrigger("Death");
+            anim.Play("Idle", 0, 0f);
+
+            GetComponent<PlayerController>().enabled = true;
+
+            StartCoroutine(Invincibility());
+
+            yield return fader.FadeIn();
+
+            isDead = false;
         }
 
         public void Heal(int amount)

@@ -6,12 +6,12 @@ public class DoubleJumpAbility : AbilityBase
 
     private bool hasDoubleJumped;
 
-    public bool isActive { get; private set; }
+    public bool isUnlocked { get; private set; }
 
     public bool CanDoubleJump()
     {
         // Only when airborne and not used yet
-        return isActive && !movement.IsGrounded() && !hasDoubleJumped;
+        return isUnlocked && !movement.IsGrounded() && !hasDoubleJumped;
     }
 
     public float ConsumeDoubleJump()
@@ -31,6 +31,6 @@ public class DoubleJumpAbility : AbilityBase
 
     public void Unlock()
     {
-        isActive = true;
+        isUnlocked = true;
     }
 }

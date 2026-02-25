@@ -1,137 +1,78 @@
-using UnityEngine;
-using Game.Core;
 using Game.Player;
+using UnityEngine;
+using System.Collections;
 
+[RequireComponent(typeof(Collider2D))]
 public class Checkpoint : MonoBehaviour
 {
-    [Header("Checkpoint Settings")]
-    [Tooltip("Unique ID for this checkpoint (for save system)")]
-    public string checkpointID = "Checkpoint_01";
+    private bool playerInRange;
+    private bool isActivated;
 
-    [Tooltip("Should this checkpoint be active from the start?")]
-    public bool activeOnStart = false;
+    [SerializeField] private GameObject saveVFX;
+    [SerializeField] private float vfxDuration = 0.4f;
 
-    [Header("Visual Feedback")]
-    [Tooltip("Renderer to change color (optional)")]
-    public SpriteRenderer checkpointRenderer;
+    private PlayerRespawn cachedRespawn;
+    private PlayerHealth cachedHealth;
+    private PlayerInputHandler cachedInput;
 
-    [Tooltip("Color when inactive")]
-    public Color inactiveColor = Color.gray;
-
-    [Tooltip("Color when activated")]
-    public Color activeColor = Color.cyan;
-
-    [Tooltip("Particle system to play on activation (optional)")]
-    public ParticleSystem activationParticles;
-
-    [Header("Audio")]
-    [Tooltip("Sound effect name to play on activation")]
-    public string activationSFX = "CheckpointActivated";
-
-    [Header("Respawn Point")]
-    [Tooltip("Where the player respawns (leave empty to use checkpoint position)")]
-    public Transform respawnPoint;
-
-    private bool isActivated = false;
-
-    void Start()
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (respawnPoint == null)
-        {
-            respawnPoint = transform;
-        }
+        if (!other.CompareTag("Player")) return;
 
-        if (activeOnStart)
+
+        playerInRange = true;
+
+        cachedRespawn = other.GetComponent<PlayerRespawn>();
+        cachedHealth = other.GetComponent<PlayerHealth>();
+        cachedInput = other.GetComponent<PlayerInputHandler>();
+
+        // TODO: show UI prompt
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (!other.CompareTag("Player")) return;
+
+        playerInRange = false;
+
+        // TODO: hide UI prompt
+    }
+
+    private void Update()
+    {
+        if (!playerInRange || isActivated) return;
+
+        if (cachedInput != null && cachedInput.InteractPressed)
         {
-            ActivateCheckpoint(false);
-        }
-        else
-        {
-            SetVisualState(false);
+            Debug.Log("Interact pressed");
+            Activate();
         }
     }
 
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Player") && !isActivated)
-        {
-            ActivateCheckpoint(true);
-        }
-    }
-
-    void ActivateCheckpoint(bool playEffects)
+    private void Activate()
     {
         isActivated = true;
+        Debug.Log("Checkpoint set");
 
-        if (GameManager.Instance != null)
+        cachedRespawn?.SetCheckpoint(transform.position);
+        cachedHealth?.Heal(999);
+
+        if (saveVFX != null)
         {
-            GameManager.Instance.SetCheckpoint(respawnPoint);
-            Debug.Log($"Checkpoint activated: {checkpointID}");
+            StartCoroutine(PlaySaveVFX());
         }
 
-        SetVisualState(true);
-
-        if (playEffects)
-        {
-            if (activationParticles != null)
-            {
-                activationParticles.Play();
-            }
-
-            if (AudioManager.Instance != null && !string.IsNullOrEmpty(activationSFX))
-            {
-                AudioManager.Instance.PlaySFX(activationSFX);
-            }
-
-            if (UIManager.Instance != null)
-            {
-                UIManager.Instance.ShowMessage("Checkpoint Activated", 2f);
-            }
-        }
+        ScreenFlash flash = FindObjectOfType<ScreenFlash>();
+        if (flash != null)
+            StartCoroutine(flash.Flash());
     }
 
-    void SetVisualState(bool active)
+    private IEnumerator PlaySaveVFX()
     {
-        if (checkpointRenderer != null)
-        {
-            checkpointRenderer.color = active ? activeColor : inactiveColor;
-        }
-    }
+        saveVFX.SetActive(true);
 
-    public void DeactivateCheckpoint()
-    {
-        isActivated = false;
-        SetVisualState(false);
-    }
+        yield return new WaitForSeconds(vfxDuration);
 
-    public bool IsActivated()
-    {
-        return isActivated;
-    }
-
-    void OnDrawGizmos()
-    {
-        Transform spawnPoint = respawnPoint != null ? respawnPoint : transform;
-
-        Gizmos.color = isActivated ? Color.green : Color.yellow;
-        Gizmos.DrawWireSphere(spawnPoint.position, 0.5f);
-        Gizmos.DrawLine(spawnPoint.position, spawnPoint.position + Vector3.up * 1f);
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        BoxCollider2D boxCollider = GetComponent<BoxCollider2D>();
-        if (boxCollider != null)
-        {
-            Gizmos.color = new Color(0, 1, 1, 0.3f);
-            Gizmos.DrawCube(transform.position + (Vector3)boxCollider.offset, boxCollider.size);
-        }
-
-        CircleCollider2D circleCollider = GetComponent<CircleCollider2D>();
-        if (circleCollider != null)
-        {
-            Gizmos.color = new Color(0, 1, 1, 0.3f);
-            Gizmos.DrawWireSphere(transform.position + (Vector3)circleCollider.offset, circleCollider.radius);
-        }
+        saveVFX.SetActive(false);
     }
 }

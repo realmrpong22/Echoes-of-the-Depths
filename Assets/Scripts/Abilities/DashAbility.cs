@@ -9,6 +9,7 @@ public class DashAbility : AbilityBase
     [SerializeField] float dashCooldown = 0.4f;
 
     public bool isActive { get; private set; }
+    public bool isUnlocked { get; private set; }
     public Vector2 Velocity { get; private set; }
 
     bool canDash = true;
@@ -16,11 +17,11 @@ public class DashAbility : AbilityBase
 
     public bool CanDash()
     {
-        if (!(canDash && isActive))
-            return false;
+        if (!isUnlocked) return false;
+        if (!canDash) return false;
+        if (isActive) return false;
 
-        if (!movement.IsGrounded() && dashedInAir)
-            return false;
+        if (!movement.IsGrounded() && dashedInAir) return false;
 
         return true;
     }
@@ -60,6 +61,6 @@ public class DashAbility : AbilityBase
 
     public void Unlock()
     {
-        isActive = true;
+        isUnlocked = true;
     }
 }

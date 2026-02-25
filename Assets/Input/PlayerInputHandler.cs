@@ -11,6 +11,8 @@ public class PlayerInputHandler : MonoBehaviour
     public bool JumpReleased { get; private set; }
     public bool AttackPressed { get; private set; }
     public bool DashPressed { get; private set; }
+    public bool InteractPressed { get; private set; }
+    public bool DiePressed { get; private set; }
 
     public event System.Action OnDash;
 
@@ -18,6 +20,8 @@ public class PlayerInputHandler : MonoBehaviour
     private InputAction jump;
     private InputAction attack;
     private InputAction dash;
+    private InputAction interact;
+    private InputAction die;
 
     void Awake()
     {
@@ -27,6 +31,8 @@ public class PlayerInputHandler : MonoBehaviour
         jump = player.FindAction("Jump");
         attack = player.FindAction("Attack");
         dash = player.FindAction("Dash");
+        interact = player.FindAction("Interact");
+        die = player.FindAction("Die");
     }
 
     void OnEnable()
@@ -35,6 +41,8 @@ public class PlayerInputHandler : MonoBehaviour
         jump.Enable();
         attack.Enable();
         dash.Enable();
+        interact.Enable();
+        die.Enable();
     }
 
     void OnDisable()
@@ -43,6 +51,8 @@ public class PlayerInputHandler : MonoBehaviour
         jump.Disable();
         attack.Disable();
         dash.Disable();
+        interact.Disable();
+        die.Disable();
     }
 
     void Update()
@@ -55,5 +65,9 @@ public class PlayerInputHandler : MonoBehaviour
         AttackPressed = attack.WasPressedThisFrame();
 
         DashPressed = dash.WasPressedThisFrame();
+
+        InteractPressed = interact.WasPressedThisFrame();
+
+        DiePressed = die.WasPressedThisFrame();
     }
 }

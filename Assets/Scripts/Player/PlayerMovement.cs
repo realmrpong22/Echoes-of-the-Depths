@@ -94,18 +94,22 @@ namespace Game.Player
                 }
             }
 
-
             pc.anim.SetBool("isGrounded", grounded);
             pc.anim.SetBool("isRunning", Mathf.Abs(inputX) > 0.1f);
             pc.anim.SetBool("isFalling", pc.rb.velocity.y < -0.1f);
             pc.anim.SetFloat("verticalSpeed", pc.rb.velocity.y);
         }
 
+        private void Update()
+        {
+            if (input.DiePressed)
+                pc.GetComponent<PlayerHealth>().Die();
+        }
+
         private void Jump()
         {
             pc.rb.velocity = new Vector2(pc.rb.velocity.x, jumpForce);
-            pc.anim.SetTrigger("Jump");
-            AudioManager.Instance?.PlaySFX("Jump");
+            PlayJumpAnimation();
         }
 
         private void DoubleJump()
@@ -114,6 +118,12 @@ namespace Game.Player
             pc.rb.velocity = new Vector2(pc.rb.velocity.x, 0f);
             pc.rb.velocity += Vector2.up * force;
 
+            PlayJumpAnimation();
+        }
+
+        private void PlayJumpAnimation()
+        {
+            pc.anim.ResetTrigger("Jump");   // prevents missed retrigger
             pc.anim.SetTrigger("Jump");
             AudioManager.Instance?.PlaySFX("Jump");
         }

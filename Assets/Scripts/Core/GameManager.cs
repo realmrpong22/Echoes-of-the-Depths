@@ -124,16 +124,6 @@ namespace Game.Core
         }
 
         #endregion
-
-        public void RespawnPlayer()
-        {
-            Debug.Log("Respawn");
-        }
-
-        public void SetCheckpoint(Transform respawnPoint)
-        {
-            Debug.Log("Set checkpoint");
-        }
     }
 
     [System.Serializable]
