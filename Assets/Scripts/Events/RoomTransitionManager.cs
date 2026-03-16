@@ -18,7 +18,7 @@ public class RoomTransitionManager : MonoBehaviour
     float screenHeight;
     bool transitioning;
 
-    void Awake()
+    void Start()
     {
         Instance = this;
 
@@ -75,6 +75,8 @@ public class RoomTransitionManager : MonoBehaviour
 
         confiner.m_BoundingShape2D = newBounds;
         confiner.InvalidateCache();
+
+        yield return null;
 
         vcam.Follow = player;
 
