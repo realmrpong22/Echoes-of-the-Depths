@@ -25,6 +25,8 @@ namespace Game.Player
 
         public float facingDirection { get; private set; } = 1f;
 
+        public bool movementLocked { get; private set; }
+
         void Awake() 
         {
             pc = GetComponent<PlayerController>();
@@ -102,6 +104,8 @@ namespace Game.Player
 
         private void Update()
         {
+            if (movementLocked) return;
+
             if (input.DiePressed)
                 pc.GetComponent<PlayerHealth>().Die();
         }
@@ -131,6 +135,11 @@ namespace Game.Player
         public bool IsGrounded()
         {
             return Physics2D.OverlapCircle(groundCheck.position, 0.15f, groundLayer);
+        }
+
+        public void LockMovement(bool locked)
+        {
+            movementLocked = locked;
         }
     }
 }

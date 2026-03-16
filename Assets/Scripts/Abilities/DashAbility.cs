@@ -31,7 +31,16 @@ public class DashAbility : AbilityBase
         if (!CanDash())
             return;
 
-        StartCoroutine(DashRoutine(facingDir));
+        float dashDir;
+
+        float inputX = input.Move.x;
+
+        if (Mathf.Abs(inputX) > 0.1f)
+            dashDir = Mathf.Sign(inputX);
+        else
+            dashDir = -facingDir;
+
+        StartCoroutine(DashRoutine(dashDir));
     }
 
     IEnumerator DashRoutine(float dir)
