@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class DashAbility : AbilityBase
@@ -51,9 +51,20 @@ public class DashAbility : AbilityBase
         if (!movement.IsGrounded())
             dashedInAir = true;
 
-        Velocity = new Vector2(dir * dashSpeed, 0f);
+        float timer = 0f;
 
-        yield return new WaitForSeconds(dashDuration);
+        while (timer < dashDuration)
+        {
+            float t = timer / dashDuration;
+
+            // Ease out (fast → slow)
+            float currentSpeed = Mathf.Lerp(dashSpeed, 0f, t);
+
+            Velocity = new Vector2(dir * currentSpeed, 0f);
+
+            timer += Time.deltaTime;
+            yield return null;
+        }
 
         isActive = false;
         Velocity = Vector2.zero;

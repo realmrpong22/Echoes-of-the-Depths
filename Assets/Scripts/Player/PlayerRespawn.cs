@@ -47,15 +47,14 @@ public class PlayerRespawn : MonoBehaviour
 
     private IEnumerator LockMovement()
     {
-        if (movement != null)
-        {
-            GetComponent<Rigidbody2D>().velocity = Vector2.zero;
-            movement.enabled = false;
-        }
+        movement.LockMovement(true);
+
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+            rb.velocity = Vector2.zero;
 
         yield return new WaitForSeconds(respawnLockTime);
 
-        if (movement != null)
-            movement.enabled = true;
+        movement.LockMovement(false);
     }
 }

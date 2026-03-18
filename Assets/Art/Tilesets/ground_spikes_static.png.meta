@@ -48,7 +48,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 16
+  spritePixelsToUnits: 8
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -141,17 +141,53 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 16
+        width: 8
         height: 8
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
-      physicsShape: []
+      physicsShape:
+      - - {x: 0, y: 3}
+        - {x: -4, y: -4}
+        - {x: 4, y: -4}
+        - {x: 3, y: -4}
+        - {x: 0, y: 3}
+      - - {x: 3, y: -4}
+        - {x: 4, y: -4}
+        - {x: 4, y: -4}
+        - {x: 3, y: -4}
       tessellationDetail: 0
       bones: []
       spriteID: 02d84e39e29e940469851a93350c5cce
       internalID: -1841502349
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ground_spikes_static_1
+      rect:
+        serializedVersion: 2
+        x: 8
+        y: 0
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape:
+      - - {x: 0, y: 3}
+        - {x: -4, y: -4}
+        - {x: -4, y: -4}
+        - {x: 4, y: -4}
+        - {x: 4, y: -4}
+        - {x: 4, y: -4}
+      tessellationDetail: 0
+      bones: []
+      spriteID: 94794ecfb2ee395469905ee3bf9d7970
+      internalID: -1003090901
       vertices: []
       indices: 
       edges: []
@@ -168,6 +204,7 @@ TextureImporter:
     secondaryTextures: []
     nameFileIdTable:
       ground_spikes_static_0: -1841502349
+      ground_spikes_static_1: -1003090901
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

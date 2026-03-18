@@ -38,6 +38,12 @@ namespace Game.Player
         {
             inputX = input.Move.x;
 
+            if (movementLocked)
+            {
+                inputX = 0;
+                return;
+            }
+
             if (inputX != 0)
                 facingDirection = Mathf.Sign(input.Move.x);
 
@@ -59,6 +65,12 @@ namespace Game.Player
 
         public void ApplyMovement()
         {
+            if (movementLocked)
+            {
+                pc.rb.velocity = new Vector2(0f, pc.rb.velocity.y);
+                return;
+            }
+
             bool grounded = IsGrounded();
 
             if (abilities.Dash.isActive)
