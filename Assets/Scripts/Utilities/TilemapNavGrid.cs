@@ -70,7 +70,9 @@ namespace Game.AI
             return new Vector2Int(c.x, c.y);
         }
 
-    #if UNITY_EDITOR
+        
+
+#if UNITY_EDITOR
         [Header("Gizmos (Editor Only)")]
         public bool showGrid = true;
         public bool showBlocked = true;

@@ -38,7 +38,9 @@ namespace Game.AI
                 if (current.position == end)
                 {
                     List<Vector3> path = ReconstructPath(allNodes, grid, start, end);
+#if UNITY_EDITOR
                     TilemapNavGrid.Instance?.SetLastPath(path);
+#endif
                     return path;
                 }
 
